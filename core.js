@@ -665,6 +665,10 @@ function boot() {
   const refresh = $('#refreshButton');
   if (refresh) refresh.addEventListener('click', () => sync({ pull: true }));
 
+  // API_URL never changes at runtime, so this is decided once, not on every render.
+  const notice = $('#storageNotice');
+  if (notice) notice.classList.toggle('hidden', !!API_URL);
+
   reflectRaceInUrl();
   renderPage();
   setInterval(tick, TICK_MS);

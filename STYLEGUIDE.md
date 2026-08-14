@@ -261,6 +261,15 @@ White card with a 4px `--ink` left border, used to explain a scoring rule in the
 the rule applies. The series ranking rule lives in one on the Series panel — a ranking
 nobody can derive from the table is a bug, not a feature.
 
+### Storage notice (`.storage-notice`)
+Same look as the rule card — white, 4px `--ink` left border — but a different job: it
+warns that data is device-only. Present on `index.html` and `boltresults.html` in the
+markup, `hidden` by default, and shown or hidden exactly once, in `boot()`
+(`core.js`), based on whether `API_URL` is set — never re-evaluated per render, since
+the constant cannot change at runtime. Not a live region: it is decided before the
+page is usable, not announced mid-session. Not shown on `admin.html`, which holds no
+race data of its own.
+
 ### Confirm card (`.confirm-card`)
 Green block shown after a successful sign-up with the race number, wave and predicted
 time. Visual confirmation only; the same text also goes to the announcer.

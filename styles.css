@@ -369,6 +369,19 @@ a.primary-button, a.secondary-button, a.save-button {
   background: var(--navy-bg); color: var(--muted); font-size: 12px; font-weight: 700;
 }
 
+/* Shown until the Sheet is connected — see API_URL at the top of core.js. A five-race
+   series runs across months; local storage alone will not survive that. */
+.storage-notice {
+  margin: 16px 0; padding: 16px 16px;
+  border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 9px;
+  background: #fff; color: var(--ink); font-size: 14px;
+}
+.storage-notice strong { display: block; margin-bottom: 4px; font-size: 15px }
+.storage-notice code {
+  padding: 1px 5px; border-radius: 4px; background: var(--navy-bg);
+  font-size: 13px;
+}
+
 /* ── Series ──────────────────────────────────────────────── */
 .rule-card {
   margin: 16px 0 4px; padding: 18px 16px;
