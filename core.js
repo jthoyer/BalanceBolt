@@ -1,7 +1,7 @@
 /* Balance Tri Club — prediction race timing, shared core.
-   Paste your Google Apps Script Web App URL below (see apps-script.gs for setup).
+   Google Apps Script Web App URL — see apps-script.gs for setup.
    Leave it empty and the app still works, storing everything on this device only. */
-const API_URL = '';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyav9iA4QOLEb5xXcuolIcTmJNTXwHxNx0Y7EbktzFEtQan3DvhFd4LeJ0T52Hwy33s9w/exec';
 
 /* Shared by index.html (sign-up) and boltresults.html (timing + results).
    Nothing in here touches page-specific markup: pages set `renderPage` and call `boot()`. */
