@@ -230,7 +230,7 @@ a.primary-button, a.secondary-button, a.save-button {
 }
 
 /* ── Admin splash ─────────────────────────────────────────── */
-.admin-links { display: grid; gap: 12px; margin: 24px 0 40px }
+.admin-links { display: grid; gap: 12px; margin: 24px 0 64px }
 .admin-link-card { display: flex; flex-direction: column }
 .admin-link-card .helper-text { margin: 8px 0 20px }
 .admin-link-card > a { margin-top: auto }
