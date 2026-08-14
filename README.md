@@ -6,8 +6,10 @@ irrelevant, which is the point.
 
 Static HTML/CSS/JS — no build step. Styled with the same tokens as the
 [club race calendar](https://jthoyer.github.io/BalanceTRI-app/), and mobile first,
-because it gets used one-handed at a finish line. See `STYLEGUIDE.md` for the design
-system and the accessibility rules the code follows.
+because it gets used one-handed at a finish line. `STYLEGUIDE.md` is the design
+system and the accessibility rules the code follows, in prose; `styleguide.html` is
+the same content, live — every example on it is the real component from `styles.css`,
+not a picture of one.
 
 ## Three pages
 
@@ -165,6 +167,8 @@ branch**, branch `main`, folder `/ (root)`. The site appears at
 | `admin.html` | Splash page, links to sign-up and race control — no JS, static only |
 | `index.html` | Sign-up page |
 | `boltresults.html` | Race control, leaderboard, prizes, series standings |
+| `styleguide.html` | The design system, rendered live from real components. No JS |
+| `styleguide.css` | Doc-only layout for `styleguide.html` — swatches, demo frames, nav. Never touched by the other three pages |
 | `core.js` | Shared model: state, five-race storage and migration, sync and outbox, wave assignment, results, series scoring, shared chrome. **`API_URL` lives at the top** |
 | `input.js` | Sign-up page rendering and form handling |
 | `results.js` | Timing, leaderboard, prizes and series rendering |

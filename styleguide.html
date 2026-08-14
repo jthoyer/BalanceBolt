@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#182542" />
+  <title>Style guide — Balance Tri Club, Beat the clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styleguide.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the style guide</a>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/balance-logo.png" alt="Balance Tri Club" />
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">DESIGN SYSTEM</p>
+          <h1>Balance Bolt <em>style guide.</em></h1>
+          <p>The design system as actually built, so a new screen can be added without reading every line of <code>styles.css</code>. Every example on this page is the real component, not a picture of one — what you see here is what ships. Source of truth is <code>STYLEGUIDE.md</code>; keep the two in step.</p>
+        </div>
+      </div>
+
+      <nav class="sg-nav" aria-label="On this page">
+        <a href="#colour">Colour</a>
+        <a href="#type">Type</a>
+        <a href="#spacing">Spacing</a>
+        <a href="#components">Components</a>
+        <a href="#breakpoints">Breakpoints</a>
+        <a href="#accessibility">Accessibility</a>
+        <a href="#tone">Tone of voice</a>
+      </nav>
+
+      <!-- ═══════════════════════════ 1. COLOUR ═══════════════════════════ -->
+      <section class="sg-section" id="colour">
+        <h2>1. Colour</h2>
+        <p class="sg-section-intro">Tokens come from the <a href="https://jthoyer.github.io/BalanceTRI-app/">club race calendar app</a> so the two feel like one product.</p>
+
+        <div class="sg-swatch-grid">
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--ink)"></div><div class="sg-swatch-meta"><code>--ink</code><span class="sg-hex">#182542</span><span class="sg-desc">Body text, hero and card backgrounds, the default "dark"</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--muted)"></div><div class="sg-swatch-meta"><code>--muted</code><span class="sg-hex">#566177</span><span class="sg-desc">Secondary text: helper copy, table headers, metadata</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--line)"></div><div class="sg-swatch-meta"><code>--line</code><span class="sg-hex">#d9dfe8</span><span class="sg-desc">Decorative container edges only — panels, cards, table wrappers</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--line-strong)"></div><div class="sg-swatch-meta"><code>--line-strong</code><span class="sg-hex">#78849c</span><span class="sg-desc">Any control boundary: inputs, selects, small buttons, dashed zones</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--canvas)"></div><div class="sg-swatch-meta"><code>--canvas</code><span class="sg-hex">#f7f8fa</span><span class="sg-desc">Page background</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--yellow)"></div><div class="sg-swatch-meta"><code>--yellow</code><span class="sg-hex">#f8c44f</span><span class="sg-desc">Fills only — primary button, wave start button, hero highlight</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--yellow-soft)"></div><div class="sg-swatch-meta"><code>--yellow-soft</code><span class="sg-hex">#ffe08f</span><span class="sg-desc">Small accent text on ink or green (the eyebrow on dark cards)</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--green)"></div><div class="sg-swatch-meta"><code>--green</code><span class="sg-hex">#116b43</span><span class="sg-desc">A wave that is running, first place, success</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--green-bg)"></div><div class="sg-swatch-meta"><code>--green-bg</code><span class="sg-hex">#e8f6ee</span><span class="sg-desc">Winning row tint, series prize card</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--navy-bg)"></div><div class="sg-swatch-meta"><code>--navy-bg</code><span class="sg-hex">#eef2fb</span><span class="sg-desc">Bib badges, status tags, table headers</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--slate)"></div><div class="sg-swatch-meta"><code>--slate</code><span class="sg-hex">#3f4d6b</span><span class="sg-desc">A wave where everyone is home</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--red)"></div><div class="sg-swatch-meta"><code>--red</code><span class="sg-hex">#b3261e</span><span class="sg-desc">Errors, destructive actions</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--red-bg)"></div><div class="sg-swatch-meta"><code>--red-bg</code><span class="sg-hex">#fdecec</span><span class="sg-desc">Error message and danger button background</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--focus)"></div><div class="sg-swatch-meta"><code>--focus</code><span class="sg-hex">#285ba8</span><span class="sg-desc">Focus ring on light backgrounds (white ring on dark ones)</span></div></div>
+          <div class="sg-swatch"><div class="sg-swatch-fill" style="background:var(--brand-blue)"></div><div class="sg-swatch-meta"><code>--brand-blue</code><span class="sg-hex">#00a3e0</span><span class="sg-desc">Brand mark only. Never used for text — 2.87:1 on white</span></div></div>
+        </div>
+
+        <div class="sg-sub">
+          <div class="rule-card">
+            <h2>The two-tier border rule</h2>
+            <p class="rule-note" style="margin-top:0">This is the rule most easily got wrong. <code>--line</code> is 1.34:1 against white: fine for the edge of a decorative card, nowhere near enough for anything a person operates. <strong>Anything that is a control gets <code>--line-strong</code>.</strong> If you are unsure whether the thing you are drawing is a control, use <code>--line-strong</code>.</p>
+          </div>
+        </div>
+
+        <div class="sg-sub" id="contrast">
+          <h3>Measured contrast</h3>
+          <p class="sg-sub-note">Computed against the WCAG 2.1 relative-luminance formula. Body text needs 4.5:1, large text (≥18.66px bold or ≥24px) needs 3:1, UI component boundaries and states need 3:1.</p>
+
+          <p class="sg-sub-note" style="margin-top:20px"><strong>Text on dark</strong></p>
+          <div class="board-wrap"><table class="board">
+            <thead><tr><th scope="col">Pair</th><th scope="col" class="num">Ratio</th></tr></thead>
+            <tbody>
+              <tr><td><code>#ffffff</code> on <code>--ink</code></td><td class="num sg-ratio sg-pass">15.19</td></tr>
+              <tr><td><code>#edf0f7</code> (hero body copy) on <code>--ink</code></td><td class="num sg-ratio sg-pass">13.32</td></tr>
+              <tr><td><code>#e6ebf5</code> (wave meta, wave size) on <code>--ink</code></td><td class="num sg-ratio sg-pass">12.71</td></tr>
+              <tr><td><code>--yellow-soft</code> on <code>--ink</code></td><td class="num sg-ratio sg-pass">11.80</td></tr>
+              <tr><td><code>--yellow</code> on <code>--ink</code></td><td class="num sg-ratio sg-pass">9.41</td></tr>
+              <tr><td><code>#ffffff</code> on <code>--slate</code></td><td class="num sg-ratio sg-pass">8.45</td></tr>
+              <tr><td><code>#e6ebf5</code> on <code>--slate</code></td><td class="num sg-ratio sg-pass">7.07</td></tr>
+              <tr><td><code>#ffffff</code> on <code>--green</code></td><td class="num sg-ratio sg-pass">6.55</td></tr>
+              <tr><td><code>#e7f4ec</code> (podium detail, confirm detail) on <code>--green</code></td><td class="num sg-ratio sg-pass">5.78</td></tr>
+              <tr><td><code>#e6ebf5</code> on <code>--green</code></td><td class="num sg-ratio sg-pass">5.48</td></tr>
+              <tr><td><code>--yellow-soft</code> on <code>--green</code></td><td class="num sg-ratio sg-pass">5.08</td></tr>
+            </tbody>
+          </table></div>
+
+          <p class="sg-sub-note" style="margin-top:20px"><strong>Text on light</strong></p>
+          <div class="board-wrap"><table class="board">
+            <thead><tr><th scope="col">Pair</th><th scope="col" class="num">Ratio</th></tr></thead>
+            <tbody>
+              <tr><td><code>--ink</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">15.19</td></tr>
+              <tr><td><code>--ink</code> on <code>--canvas</code></td><td class="num sg-ratio sg-pass">14.30</td></tr>
+              <tr><td><code>--ink</code> on <code>#fdf6e4</code> (last-place row)</td><td class="num sg-ratio sg-pass">14.09</td></tr>
+              <tr><td><code>--ink</code> on <code>--green-bg</code></td><td class="num sg-ratio sg-pass">13.64</td></tr>
+              <tr><td><code>--ink</code> on <code>--navy-bg</code></td><td class="num sg-ratio sg-pass">13.55</td></tr>
+              <tr><td><code>--ink</code> on <code>#eef0f4</code> (secondary button)</td><td class="num sg-ratio sg-pass">13.32</td></tr>
+              <tr><td><code>--ink</code> on <code>--yellow</code> (primary button label)</td><td class="num sg-ratio sg-pass">9.41</td></tr>
+              <tr><td><code>--green</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">6.55</td></tr>
+              <tr><td><code>--red</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">6.54</td></tr>
+              <tr><td><code>--muted</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">6.23</td></tr>
+              <tr><td><code>--muted</code> on <code>#fffaf0</code> (adhoc prize card)</td><td class="num sg-ratio sg-pass">5.99</td></tr>
+              <tr><td><code>--green</code> on <code>--green-bg</code></td><td class="num sg-ratio sg-pass">5.88</td></tr>
+              <tr><td><code>--muted</code> on <code>--canvas</code></td><td class="num sg-ratio sg-pass">5.86</td></tr>
+              <tr><td><code>--muted</code> on <code>#fdf6e4</code></td><td class="num sg-ratio sg-pass">5.78</td></tr>
+              <tr><td><code>--red</code> on <code>--red-bg</code></td><td class="num sg-ratio sg-pass">5.72</td></tr>
+              <tr><td><code>--muted</code> on <code>--green-bg</code></td><td class="num sg-ratio sg-pass">5.59</td></tr>
+              <tr><td><code>--muted</code> on <code>--navy-bg</code></td><td class="num sg-ratio sg-pass">5.55</td></tr>
+              <tr><td><code>--muted</code> on <code>#eef0f4</code></td><td class="num sg-ratio sg-pass">5.46</td></tr>
+            </tbody>
+          </table></div>
+
+          <p class="sg-sub-note" style="margin-top:20px"><strong>Non-text</strong> (3:1 needed)</p>
+          <div class="board-wrap"><table class="board">
+            <thead><tr><th scope="col">Pair</th><th scope="col" class="num">Ratio</th></tr></thead>
+            <tbody>
+              <tr><td><code>--ink</code> fill on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">15.19</td></tr>
+              <tr><td><code>--focus</code> ring on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">6.66</td></tr>
+              <tr><td><code>--focus</code> ring on <code>--canvas</code></td><td class="num sg-ratio sg-pass">6.27</td></tr>
+              <tr><td><code>--red</code> border on <code>--canvas</code></td><td class="num sg-ratio sg-pass">6.15</td></tr>
+              <tr><td><code>--focus</code> ring on <code>--green-bg</code></td><td class="num sg-ratio sg-pass">5.98</td></tr>
+              <tr><td><code>--focus</code> ring on <code>--navy-bg</code></td><td class="num sg-ratio sg-pass">5.94</td></tr>
+              <tr><td><code>--green</code> fill on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">6.55</td></tr>
+              <tr><td><code>--yellow</code> start button on the <code>--green</code> wave bar</td><td class="num sg-ratio sg-pass">4.05</td></tr>
+              <tr><td><code>--line-strong</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-pass">3.76</td></tr>
+              <tr><td><code>--line-strong</code> on <code>#fffaf0</code></td><td class="num sg-ratio sg-pass">3.62</td></tr>
+              <tr><td><code>--line-strong</code> on <code>--canvas</code></td><td class="num sg-ratio sg-pass">3.54</td></tr>
+              <tr><td><code>--line-strong</code> on <code>--green-bg</code></td><td class="num sg-ratio sg-pass">3.38</td></tr>
+              <tr><td><code>--line-strong</code> on <code>--navy-bg</code></td><td class="num sg-ratio sg-pass">3.36</td></tr>
+              <tr><td><code>--line-strong</code> on <code>#eef0f4</code></td><td class="num sg-ratio sg-pass">3.30</td></tr>
+            </tbody>
+          </table></div>
+
+          <p class="sg-sub-note" style="margin-top:20px"><strong>Deliberately below 3:1</strong>, and why that is allowed</p>
+          <div class="board-wrap"><table class="board">
+            <thead><tr><th scope="col">Pair</th><th scope="col" class="num">Ratio</th><th scope="col">Reason</th></tr></thead>
+            <tbody>
+              <tr><td><code>--line</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-decorative">1.34</td><td>Decorative card and panel edges. Carries no state and no affordance; the content inside identifies the card.</td></tr>
+              <tr><td><code>#eff1f4</code> row dividers on <code>#ffffff</code></td><td class="num sg-ratio sg-decorative">1.13</td><td>Decorative separators between list rows.</td></tr>
+              <tr><td><code>#e0c07a</code> on <code>#ffffff</code> (adhoc prize tint)</td><td class="num sg-ratio sg-decorative">1.75</td><td>Decorative tint. The card is identified by its heading, not its border.</td></tr>
+              <tr><td><code>--yellow</code> fill against <code>--canvas</code></td><td class="num sg-ratio sg-decorative">1.52</td><td>The primary button is identified by its <code>--ink</code> label at 9.41:1. WCAG 1.4.11 does not require a boundary when the component is identifiable another way.</td></tr>
+            </tbody>
+          </table></div>
+
+          <div class="rule-card" style="margin-top:20px">
+            <h2>Never do this</h2>
+            <p class="rule-note" style="margin-top:0">Both were live bugs, now fixed:</p>
+            <ul class="sg-list">
+              <li><code>#f6cf69</code> eyebrow text on a white panel — 1.62:1. Eyebrows on light backgrounds use <code>--muted</code>.</li>
+              <li><code>--yellow</code> eyebrow text on <code>--green</code> — 4.05:1, under the 4.5 needed for 12px text. Use <code>--yellow-soft</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Never colour alone</h3>
+          <p class="sg-sub-note">Rank is always printed as a number as well as tinted. "Bang on" results are green <em>and</em> say <code>0:03 under</code>. A running racer gets a <span class="status-tag">On course</span> status tag, not just grey text.</p>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════ 2. TYPE ═══════════════════════════ -->
+      <section class="sg-section" id="type">
+        <h2>2. Type</h2>
+        <p class="sg-section-intro">Two families, loaded from Google Fonts: <strong>Outfit</strong> (600/700) for headings, clocks and anything that should feel big; <strong>DM Sans</strong> (400/500/600/700) for everything else.</p>
+
+        <div class="sg-specimen-list">
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Hero headline · Outfit 700 · <code>clamp(2rem, 9vw, 3.25rem)</code></p>
+            <p style="font-family:Outfit,sans-serif;font-weight:700;font-size:clamp(2rem,9vw,3.25rem);line-height:1.08;letter-spacing:-1.2px;margin:0">Call your time.</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Race clock · Outfit 700, tabular · <code>clamp(2.75rem, 16vw, 5rem)</code></p>
+            <p class="global-clock" style="position:static;font-size:clamp(2.75rem,16vw,5rem)">12:34</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Section h1 / h2 · Outfit 600/700 · 24px → 28px</p>
+            <h2 style="margin:0">Series standings</h2>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Wave bar h3 · Outfit 700 · 20px</p>
+            <h3 style="margin:0;font:700 20px Outfit,sans-serif">Wave 2</h3>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Podium name · Outfit 700 · 26px → 30px</p>
+            <p class="podium-name" style="margin:0">#4 Jo</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Prize winner · Outfit 700 · 20px → 22px</p>
+            <p class="prize-winner" style="margin:0">#2 Priya</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Timing row elapsed · Outfit 700, tabular · 19px</p>
+            <span class="timing-elapsed">12:33</span>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Body · DM Sans 400 · 16px/1.5</p>
+            <p style="margin:0">Speed counts for nothing today. Write down the time you think you'll finish in, then go and run it.</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Helper text, metadata · DM Sans 400 · 14px · <code>--muted</code></p>
+            <p class="helper-text" style="margin:0">Waves group everyone within five minutes of each other's call.</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Eyebrow · DM Sans 700 · 12px, letter-spacing 1.2px</p>
+            <p class="eyebrow" style="color:var(--muted);margin:0">PREDICTION RACE</p>
+          </div>
+          <div class="sg-specimen">
+            <p class="sg-specimen-label">Table column header · DM Sans 700 · 11px, letter-spacing 0.8px, <code>--muted</code></p>
+            <div class="board-wrap" style="max-width:280px"><table class="board"><thead><tr><th scope="col" class="col-rank">#</th><th scope="col">Racer</th><th scope="col" class="num">Diff</th></tr></thead></table></div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <ul class="sg-list">
+            <li>Every element showing a time gets <code>font-variant-numeric: tabular-nums</code> so digits do not jitter as a clock ticks.</li>
+            <li>Form inputs are <strong>16px minimum</strong>. Anything smaller makes iOS zoom on focus and the layout jumps mid-race.</li>
+            <li>Uppercase is done in the copy, not with <code>text-transform</code>, except for table headers and prize card titles where the source text is the readable form.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════ 3. SPACING ═══════════════════════════ -->
+      <section class="sg-section" id="spacing">
+        <h2>3. Spacing, shape, elevation</h2>
+
+        <div class="sg-demo">
+          <div class="sg-demo-label">Border radius — <code>9px</code> everywhere, <code>999px</code> for pills and badges</div>
+          <div class="sg-demo-body sg-canvas sg-demo-row">
+            <div style="width:96px;height:56px;border:1px solid var(--line-strong);border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;font:700 12px 'DM Sans';color:var(--muted)">9px card</div>
+            <span class="bib"><span class="bib-number">7</span></span>
+            <span class="status-tag">999px pill</span>
+          </div>
+        </div>
+
+        <div class="sg-demo">
+          <div class="sg-demo-label">The one shadow in the system — <code>0 8px 24px rgba(18,31,55,.12)</code>, used only on the sticky race clock while it is stuck</div>
+          <div class="sg-demo-body sg-canvas" style="padding:32px 20px">
+            <div style="max-width:280px;margin:auto;border-radius:9px;background:var(--ink);box-shadow:0 8px 24px rgba(18,31,55,.12);padding:16px;text-align:center;color:#fff;font:700 13px 'DM Sans'">Sticky clock hero</div>
+          </div>
+        </div>
+
+        <div class="sg-demo">
+          <div class="sg-demo-label">Tap targets — <code>--tap-min</code> 44px is the floor, <code>--tap</code> 48px for primary controls</div>
+          <div class="sg-demo-body sg-canvas sg-demo-row" style="align-items:flex-end">
+            <div style="width:44px;height:44px;border-radius:9px;border:2px solid var(--line-strong);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--ink);font:700 11px 'DM Sans'">44</div>
+            <div style="width:48px;height:48px;border-radius:9px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font:700 11px 'DM Sans'">48</div>
+            <div style="width:52px;height:52px;border-radius:9px;background:var(--yellow);display:flex;align-items:center;justify-content:center;color:var(--ink);font:700 11px 'DM Sans'">52</div>
+          </div>
+        </div>
+
+        <ul class="sg-list">
+          <li>Vertical rhythm: <code>.panel</code> 20px margin block, <code>.section-head</code> 28px top / 12px bottom, grids and lists gap 12px, form field groups 12–14px.</li>
+          <li>Padding: panel <code>22px 18px</code> → <code>28px</code> at ≥700px. Hero <code>28px 22px</code> → <code>48px 54px</code>. Cards <code>16–20px</code>.</li>
+        </ul>
+      </section>
+
+      <!-- ═══════════════════════════ 4. COMPONENTS ═══════════════════════════ -->
+      <section class="sg-section" id="components">
+        <h2>4. Components</h2>
+        <p class="sg-section-intro">Every demo below renders the real class from <code>styles.css</code>. Nothing here is a mock-up.</p>
+
+        <div class="sg-sub">
+          <h3>Hero</h3>
+          <p class="sg-sub-note"><code>.hero</code> / <code>.hero-copy</code> — dark navy block, 9px radius. Body copy uses <code>#edf0f7</code>, not pure white, to soften the block without dropping below 4.5:1.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body sg-flush">
+              <div class="hero">
+                <div class="hero-copy">
+                  <p class="eyebrow">PREDICTION RACE · RACE 1 OF 5</p>
+                  <div class="sg-hero-h1-sample" role="heading" aria-level="4">Call your time. <em>Then run it.</em></div>
+                  <p>Speed counts for nothing today. Whoever lands closest to their own call wins.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Clock hero</h3>
+          <p class="sg-sub-note"><code>.clock-hero</code> — sticky on phones so the clock is never scrolled away; static from 700px. <code>role="timer" aria-live="off"</code>: a clock that speaks every tick makes the page unusable.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body sg-flush">
+              <div class="hero clock-hero" style="position:static">
+                <div class="hero-copy">
+                  <p class="eyebrow">RACE CONTROL · RACE 1</p>
+                  <p class="global-clock" role="timer" aria-live="off">15:48</p>
+                  <p class="clock-sub">1 still out on course.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Panel &amp; section head</h3>
+          <p class="sg-sub-note"><code>.panel</code> — white card, <code>--line</code> border. <code>.section-head</code> — heading plus one line of helper text for a region that is not a card.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body">
+              <div class="section-head" style="margin-top:0">
+                <h2>Start list — race 1</h2>
+                <p class="helper-text">Waves group everyone within five minutes of each other's call.</p>
+              </div>
+              <div class="panel" style="margin-bottom:0">
+                <div class="panel-heading">
+                  <p class="eyebrow">RACE 1</p>
+                  <h2>Add yourself to the start list</h2>
+                </div>
+                <p class="helper-text">Your name, then a predicted time.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Race picker</h3>
+          <p class="sg-sub-note"><code>.race-pick</code> — five native radios styled as a segmented control. The radio is visually hidden but focusable; the label carries the paint. Fully functional below — try the arrow keys.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body">
+              <fieldset class="race-pick">
+                <legend>Which race</legend>
+                <div class="race-pick-options">
+                  <span class="race-pick-option"><input type="radio" name="sg-race-demo" id="sg-race-1" checked /><label for="sg-race-1"><span class="visually-hidden">Race </span>1</label></span>
+                  <span class="race-pick-option"><input type="radio" name="sg-race-demo" id="sg-race-2" /><label for="sg-race-2"><span class="visually-hidden">Race </span>2</label></span>
+                  <span class="race-pick-option"><input type="radio" name="sg-race-demo" id="sg-race-3" /><label for="sg-race-3"><span class="visually-hidden">Race </span>3</label></span>
+                  <span class="race-pick-option"><input type="radio" name="sg-race-demo" id="sg-race-4" /><label for="sg-race-4"><span class="visually-hidden">Race </span>4</label></span>
+                  <span class="race-pick-option"><input type="radio" name="sg-race-demo" id="sg-race-5" /><label for="sg-race-5"><span class="visually-hidden">Race </span>5</label></span>
+                </div>
+              </fieldset>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Thumb bar</h3>
+          <p class="sg-sub-note"><code>.thumb-bar</code> — fixed to the bottom of the viewport on phones, pills under the logo from 700px. Framed and set to <code>position: static</code> here so it doesn't take over this page; tab switching itself is wired in <code>results.js</code>, not shown live here.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body sg-flush sg-frame">
+              <nav class="thumb-bar" aria-label="Sections (illustration)">
+                <div class="tab-strip" role="tablist" aria-label="Race control and results">
+                  <button type="button" class="view-tab" role="tab" aria-selected="true">Timing</button>
+                  <button type="button" class="view-tab" role="tab" aria-selected="false" tabindex="-1">Results</button>
+                  <button type="button" class="view-tab" role="tab" aria-selected="false" tabindex="-1">Series</button>
+                </div>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Wave card</h3>
+          <p class="sg-sub-note"><code>.wave-card</code> — start-list grouping. Ink header bar with racer count, then a plain list of <code>.roster-entry</code> rows.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body">
+              <section class="wave-card">
+                <div class="wave-card-head">
+                  <div class="wave-card-title"><h3>Wave 1</h3><span class="wave-band">calls 11:30–16:00</span></div>
+                  <span class="wave-size">3 racers</span>
+                </div>
+                <ul>
+                  <li class="roster-entry">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">4</span></span><span class="roster-name">Jo</span><span class="roster-pred">called 11:30</span></span>
+                    <button type="button" class="quiet-button">Remove</button>
+                  </li>
+                  <li class="roster-entry">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Priya</span><span class="roster-pred">called 11:40</span></span>
+                    <button type="button" class="quiet-button">Remove</button>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Wave bar &amp; timing row</h3>
+          <p class="sg-sub-note"><code>.wave-bar</code> — race-control header for one wave; background and words both encode state. <code>.timing-row</code> — bib, name, call, then a live clock and Finish, or the elapsed time, delta and Undo.</p>
+
+          <div class="sg-demo">
+            <div class="sg-demo-label"><code>.pending</code> — not started, Finish is disabled</div>
+            <div class="sg-demo-body sg-flush">
+              <section class="wave-block">
+                <div class="wave-bar pending">
+                  <div class="wave-bar-main"><h3>Wave 3</h3><p class="wave-meta">0 of 2 home</p></div>
+                  <p class="wave-clock waiting">On the line</p>
+                  <button type="button" class="start-button">Start wave 3</button>
+                </div>
+                <div class="wave-body">
+                  <div class="timing-row">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">6</span></span><span class="roster-name">Marco</span><span class="roster-pred">called 18:20</span></span>
+                    <span class="timing-result"><button type="button" class="finish-button" disabled aria-label="Finish Marco — wave not started yet">Finish</button></span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="sg-demo">
+            <div class="sg-demo-label"><code>.running</code> — live clock, ticking, Finish enabled</div>
+            <div class="sg-demo-body sg-flush">
+              <section class="wave-block">
+                <div class="wave-bar running">
+                  <div class="wave-bar-main"><h3>Wave 1</h3><p class="wave-meta">1 of 2 home</p></div>
+                  <p class="wave-clock">12:41</p>
+                </div>
+                <div class="wave-body">
+                  <div class="timing-row">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">4</span></span><span class="roster-name">Jo</span><span class="roster-pred">called 11:30</span></span>
+                    <span class="timing-result"><span class="timing-elapsed">11:28</span><span class="timing-delta delta-good">0:02 under</span><button type="button" class="quiet-button" aria-label="Undo the finish time for Jo">Undo</button></span>
+                  </div>
+                  <div class="timing-row">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Priya</span><span class="roster-pred">called 11:40</span></span>
+                    <span class="timing-result"><span class="timing-elapsed">12:41</span><button type="button" class="finish-button" aria-label="Stop the clock for Priya">Finish</button></span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="sg-demo">
+            <div class="sg-demo-label"><code>.done</code> — everyone in this wave is home</div>
+            <div class="sg-demo-body sg-flush">
+              <section class="wave-block">
+                <div class="wave-bar done">
+                  <div class="wave-bar-main"><h3>Wave 2</h3><p class="wave-meta">2 of 2 home</p></div>
+                  <p class="wave-clock">15:12</p>
+                </div>
+                <div class="wave-body">
+                  <div class="timing-row">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">3</span></span><span class="roster-name">Sam</span><span class="roster-pred">called 15:00</span></span>
+                    <span class="timing-result"><span class="timing-elapsed">15:12</span><span class="timing-delta delta-off">0:12 over</span><button type="button" class="quiet-button" aria-label="Undo the finish time for Sam">Undo</button></span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Podium card</h3>
+          <p class="sg-sub-note"><code>.podium-card</code> — two per race: <code>.first</code> on <code>--green</code>, <code>.last</code> on <code>--ink</code>. Eyebrow uses <code>--yellow-soft</code>.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body sg-demo-row">
+              <div class="podium-card first" style="flex:1;min-width:220px">
+                <p class="eyebrow">CLOSEST TO THE CALL</p>
+                <p class="podium-name">#4 Jo</p>
+                <p class="podium-delta">0:02 under</p>
+                <p class="podium-detail">Called 11:30 · ran 11:28</p>
+              </div>
+              <div class="podium-card last" style="flex:1;min-width:220px">
+                <p class="eyebrow">FURTHEST FROM THE CALL</p>
+                <p class="podium-name">#6 Marco</p>
+                <p class="podium-delta">0:42 over</p>
+                <p class="podium-detail">Called 18:20 · ran 19:02</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Prize card</h3>
+          <p class="sg-sub-note"><code>.prize-card</code> — white card, uppercase <code>--muted</code> title, big winner name. <code>.adhoc</code> for on-the-day prizes, <code>.series</code> for series-wide ones.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body sg-demo-row">
+              <article class="prize-card" style="flex:1;min-width:200px"><h3>Bang on</h3><p class="prize-winner">#4 Jo, #2 Priya</p><p class="prize-detail">Inside 5 seconds of their own call</p></article>
+              <article class="prize-card adhoc" style="flex:1;min-width:200px"><h3>Best hat</h3><p class="prize-winner">#6 Marco</p><p class="prize-detail">0:42 over</p><button type="button" class="quiet-button">Take it back</button></article>
+              <article class="prize-card series" style="flex:1;min-width:200px"><h3>Grand prize</h3><p class="prize-winner">#4 Jo</p><p class="prize-detail">0:18 over their best 4</p></article>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Rule card &amp; storage notice</h3>
+          <p class="sg-sub-note">Same look — white, 4px <code>--ink</code> left border — different jobs. <code>.rule-card</code> explains a scoring rule in the place it applies. <code>.storage-notice</code> warns that race data is device-only; shown or hidden once at boot, never a live region.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body">
+              <div class="storage-notice" style="margin-top:0">
+                <strong>This device only, for now.</strong>
+                Sign-ups and times are stored right here until the Google Sheet is connected.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Confirm card</h3>
+          <p class="sg-sub-note"><code>.confirm-card</code> — shown after a successful sign-up. Visual confirmation only; the same text also goes to the announcer.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body">
+              <div class="confirm-card">
+                <p class="eyebrow">YOU'RE IN</p>
+                <p class="confirm-line">Jo — racer #4, wave 1.</p>
+                <p class="confirm-detail">Called 11:30 in race 1. Nothing to do now but run it.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Admin splash link</h3>
+          <p class="sg-sub-note"><code>.admin-link-card</code> — eyebrow, heading, one line of helper text, a full-width button-styled <code>&lt;a&gt;</code> pinned to the bottom with <code>margin-top: auto</code>.</p>
+          <div class="sg-demo">
+            <div class="sg-demo-body">
+              <div class="admin-links" style="margin:0">
+                <section class="panel admin-link-card" style="margin:0">
+                  <div class="panel-heading"><p class="eyebrow">FOR RACERS</p><h2>Sign-up</h2></div>
+                  <p class="helper-text">Name, a predicted time, and the wave they land in.</p>
+                  <a class="primary-button" href="#components">Open sign-up <span aria-hidden="true">→</span></a>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Buttons</h3>
+          <div class="board-wrap"><table class="board">
+            <thead><tr><th scope="col">Class</th><th scope="col">Use</th><th scope="col">Look</th></tr></thead>
+            <tbody>
+              <tr><td><code>.primary-button</code></td><td>The main action on a form</td><td><code>--yellow</code> fill, <code>--ink</code> label, 52px</td></tr>
+              <tr><td><code>.save-button</code></td><td>Secondary primary — "Stop their clock"</td><td><code>--ink</code> fill, white label, 52px</td></tr>
+              <tr><td><code>.start-button</code></td><td>Fire a wave</td><td><code>--yellow</code> fill inside the wave bar, 56px</td></tr>
+              <tr><td><code>.finish-button</code></td><td>Stop one racer's clock</td><td><code>--ink</code> fill, 48px</td></tr>
+              <tr><td><code>.secondary-button</code></td><td>Admin actions</td><td><code>#eef0f4</code> fill, <code>--line-strong</code> border</td></tr>
+              <tr><td><code>.secondary-button.danger</code></td><td>Destructive</td><td><code>--red-bg</code> fill, <code>--red</code> border and label</td></tr>
+              <tr><td><code>.quiet-button</code></td><td>Remove / Undo / Take it back</td><td>White, <code>--line-strong</code> border, 44px</td></tr>
+              <tr><td><code>.text-button</code></td><td>Header-only, low weight</td><td>Transparent, <code>--muted</code></td></tr>
+            </tbody>
+          </table></div>
+          <div class="sg-demo">
+            <div class="sg-demo-body sg-demo-row">
+              <button type="button" class="primary-button" style="width:auto">Add me to the race <span aria-hidden="true">+</span></button>
+              <button type="button" class="save-button" style="width:auto">Stop their clock</button>
+              <button type="button" class="secondary-button" style="width:auto">Clear all times</button>
+              <button type="button" class="secondary-button danger" style="width:auto">Wipe the whole race</button>
+              <button type="button" class="quiet-button">Undo</button>
+              <button type="button" class="text-button">Refresh</button>
+            </div>
+          </div>
+          <p class="sg-sub-note">Full-width on phones, <code>width: auto</code> from 700px up. These three are also used on <code>&lt;a&gt;</code> elements (see the admin splash link above) — an anchor doesn't centre its content or respect <code>width: 100%</code> the way a <code>&lt;button&gt;</code> does for free, so <code>a.primary-button, a.secondary-button, a.save-button</code> carries its own <code>display: flex</code> rule. A fourth button class needs adding to that selector too, or a link styled with it sits left-aligned and shrink-wrapped instead of centred and full-width.</p>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Table row and cell states</h3>
+          <p class="sg-sub-note">Every state is said in words as well as shown in colour — see <a href="#colour">Never colour alone</a>.</p>
+          <div class="board-wrap"><table class="board">
+            <thead><tr><th scope="col" class="col-rank">#</th><th scope="col">Racer</th><th scope="col" class="num">Difference</th></tr></thead>
+            <tbody>
+              <tr class="is-first">
+                <td class="col-rank"><span class="rank-badge">1</span></td>
+                <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">4</span></span><span class="roster-name">Jo</span></span><span class="racer-sub">called 11:30 · ran 11:28</span></th>
+                <td class="num delta-good"><strong>0:02 under</strong></td>
+              </tr>
+              <tr>
+                <td class="col-rank"><span class="rank-badge">2</span></td>
+                <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">3</span></span><span class="roster-name">Sam</span></span><span class="racer-sub">called 15:00 · ran 15:12</span></th>
+                <td class="num"><strong>0:12 over</strong></td>
+              </tr>
+              <tr class="is-running">
+                <td class="col-rank">—</td>
+                <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Priya</span></span><span class="racer-sub">called 11:40 · running 12:41</span></th>
+                <td class="num"><span class="status-tag">On course</span></td>
+              </tr>
+              <tr class="not-eligible">
+                <td class="col-rank">—</td>
+                <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">7</span></span><span class="roster-name">Nina</span></span><span class="racer-sub">2 of 5 races · needs 2 more to qualify</span></th>
+                <td class="num"><strong>0:44</strong></td>
+              </tr>
+              <tr>
+                <td class="col-rank"><span class="rank-badge">1</span></td>
+                <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">4</span></span><span class="roster-name">Jo</span></span><span class="racer-sub">a dropped race — R3</span></th>
+                <td class="num is-dropped"><s>2:00</s><span class="visually-hidden"> (dropped)</span></td>
+              </tr>
+            </tbody>
+          </table></div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════ 5. BREAKPOINTS ═══════════════════════════ -->
+      <section class="sg-section" id="breakpoints">
+        <h2>5. Mobile first and breakpoints</h2>
+        <p class="sg-section-intro">Base CSS is the phone. There are exactly two breakpoints and both only add.</p>
+        <ul class="sg-list">
+          <li><strong><code>@media (min-width: 700px)</code></strong> — the real one. Thumb bar becomes top pills, buttons stop being full width, wide table columns appear and <code>.racer-sub</code> disappears, grids go multi-column, hero padding grows, the clock stops being sticky.</li>
+          <li><strong><code>@media (min-width: 1000px)</code></strong> — podium gets wider columns. That is all.</li>
+        </ul>
+        <p class="sg-sub-note" style="margin-top:16px"><strong>Non-negotiables</strong></p>
+        <ul class="sg-list">
+          <li>Layout must reflow at <strong>320px</strong> with no horizontal scrolling.</li>
+          <li><code>.shell</code> is <code>min(1100px, calc(100% - 32px))</code>.</li>
+          <li>Safe-area insets are respected on the fixed bar via <code>env(safe-area-inset-bottom)</code>.</li>
+          <li><code>@media (prefers-reduced-motion: reduce)</code> kills transitions, animations and smooth scrolling. There is very little motion to begin with — that is the point.</li>
+          <li><code>@media (forced-colors: active)</code> restores the selected state of race-picker options and tabs with an outline, because painted backgrounds are dropped in that mode.</li>
+        </ul>
+      </section>
+
+      <!-- ═══════════════════════════ 6. ACCESSIBILITY ═══════════════════════════ -->
+      <section class="sg-section" id="accessibility">
+        <h2>6. Accessibility rules the code follows</h2>
+        <p class="sg-section-intro">WCAG 2.1 AA. These are the decisions worth knowing before adding a screen.</p>
+        <ul class="sg-list">
+          <li><strong>Live regions are rationed.</strong> Exactly one polite live region per page: <code>#announcer</code>, a visually-hidden <code>role="status"</code>. Short, deliberate sentences go through <code>announce()</code> — "Racer 4, Priya, finished, 12 seconds over."</li>
+          <li><strong>Nothing that ticks is ever inside a live region.</strong> The race clock is <code>role="timer" aria-live="off"</code>; wave clocks and per-racer clocks are plain text. A clock that speaks five times a second makes the page unusable. Containers that re-render wholesale have no <code>aria-live</code> at all — announcing an entire rebuilt list is worse than announcing nothing.</li>
+          <li><strong>The sync pill is not a live region.</strong> It polls every four seconds; as a live region it would natter constantly. Only a genuine online↔offline transition is announced, once, through <code>#announcer</code>.</li>
+          <li><strong>Focus survives re-rendering.</strong> Buttons that survive a render under a different name carry <code>data-focus-key</code>, and <code>keepFocus()</code> moves focus to the same key afterwards — so Finish → Undo → Finish keeps you in the same row. Where an element genuinely disappears, the handler decides explicitly where focus goes next. Never let focus fall back to <code>&lt;body&gt;</code>.</li>
+          <li><strong>Errors.</strong> Each form error is a <code>role="alert"</code> paragraph. On failure the offending field gets <code>aria-invalid="true"</code> and the error's id appended to its <code>aria-describedby</code>; both are cleared as soon as the field is edited.</li>
+          <li><strong>Headings.</strong> One <code>h1</code> per rendered view. Because panels are toggled with <code>display: none</code>, only the active view's headings are in the accessibility tree, so each <code>role="tabpanel"</code> starts its own h1 → h2 → h3 ladder.</li>
+          <li><strong>Keyboard.</strong> Every action is reachable and operable without a pointer. Tabs use the ARIA authoring practice: roving <code>tabindex</code>, arrow keys / Home / End, and focus moves into the panel on activation. <code>:focus-visible</code> gives a 3px <code>--focus</code> outline with 3px offset, switched to white on ink and green surfaces. A skip link is the first element on every page.</li>
+          <li><strong>Targets and reflow.</strong> 44px minimum on everything interactive, 48px on primary controls, 16px form inputs, 320px reflow with no horizontal scroll.</li>
+          <li><strong>Text alternatives.</strong> The logo's <code>alt</code> is the club name. Decorative glyphs (<code>+</code>, <code>★</code>, <code>→</code>, <code>↗</code>) are <code>aria-hidden="true"</code>. Icon-free buttons whose visible text is ambiguous in isolation ("Remove", "Undo", "Finish") get an <code>aria-label</code> naming the racer.</li>
+          <li><strong>ARIA is a last resort.</strong> Radios for the race picker, <code>&lt;fieldset&gt;</code>/<code>&lt;legend&gt;</code> for groups, <code>&lt;th scope&gt;</code> for tables, real <code>&lt;button&gt;</code>s and <code>&lt;a&gt;</code>s. <code>role="tab"</code> and <code>role="status"</code> are used because HTML has no equivalent; nothing else is.</li>
+        </ul>
+      </section>
+
+      <!-- ═══════════════════════════ 7. TONE ═══════════════════════════ -->
+      <section class="sg-section" id="tone">
+        <h2>7. Tone of voice</h2>
+        <p class="sg-section-intro">Direct, warm, slightly cheeky, inclusive. "We", not "you". Short sentences. British spelling.</p>
+        <ul class="sg-list">
+          <li>Speak to a club member standing at a finish line in the rain, not to a user.</li>
+          <li>Lead with the human bit: "Call your time. <strong>Then run it.</strong>"</li>
+          <li>Empty states say what happens next, not what is missing: "Prizes appear as soon as the first racer finishes."</li>
+          <li>Errors are friendly and actionable, never blaming: "Pop your name in first.", "Predict a time longer than zero — nobody is that quick."</li>
+          <li>Prize names carry the humour, interface labels do not: "Off like a rabbit", "Took the scenic route", "Bang on". Buttons stay literal: "Stop their clock".</li>
+          <li>Confirmations are plain: "Ada — racer #3, wave 3."</li>
+          <li>Sentence case for headings and buttons. Uppercase only for eyebrows and table headers.</li>
+          <li>Never call it a "user", a "participant" or an "entry". They are racers, and they have names.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

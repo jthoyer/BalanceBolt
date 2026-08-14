@@ -1,0 +1,100 @@
+/* Balance Bolt — style guide page only.
+   Doc-layout classes live here, prefixed `sg-`, so they never mix with the app's own
+   component classes in styles.css. Every component demo on the page uses the real
+   classes from styles.css unchanged — this file only lays the demos out and frames
+   them; it never restyles a real component. */
+
+.sg-intro { max-width: 640px }
+
+/* ── On-page nav ─────────────────────────────────────────── */
+.sg-nav {
+  position: sticky; top: 0; z-index: 15;
+  display: flex; gap: 6px; overflow-x: auto;
+  margin: 0 0 24px; padding: 10px 2px;
+  background: rgba(255, 255, 255, .97);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+  -webkit-overflow-scrolling: touch;
+}
+.sg-nav a {
+  flex: 0 0 auto; padding: 8px 14px;
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  background: #fff; color: var(--ink);
+  font: 700 13px "DM Sans", sans-serif; text-decoration: none; white-space: nowrap;
+}
+.sg-nav a:hover { background: var(--navy-bg) }
+
+/* ── Sections ────────────────────────────────────────────── */
+.sg-section { margin: 0 0 56px; scroll-margin-top: 64px }
+.sg-section h2 { margin: 0 0 6px; font: 700 26px Outfit, sans-serif }
+.sg-section-intro { margin: 0 0 24px; color: var(--muted); max-width: 640px }
+.sg-sub { margin: 32px 0 12px; scroll-margin-top: 64px }
+.sg-sub h3 { margin: 0 0 4px; font: 700 18px Outfit, sans-serif }
+.sg-sub-note { margin: 0 0 14px; color: var(--muted); font-size: 14px; max-width: 640px }
+
+/* ── Colour swatches ─────────────────────────────────────── */
+.sg-swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px }
+.sg-swatch { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff }
+.sg-swatch-fill { height: 56px }
+.sg-swatch-meta { padding: 10px 12px }
+.sg-swatch-meta code { display: block; font-size: 13px; font-weight: 700; color: var(--ink) }
+.sg-swatch-meta .sg-hex { display: block; margin: 2px 0 6px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums }
+.sg-swatch-meta .sg-desc { display: block; color: var(--muted); font-size: 13px }
+
+/* ── Type specimens ──────────────────────────────────────── */
+.sg-specimen-list { display: grid; gap: 18px }
+.sg-specimen { padding: 14px 0; border-bottom: 1px solid var(--line) }
+.sg-specimen:last-child { border-bottom: 0 }
+.sg-specimen-label {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin-bottom: 8px;
+  color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+}
+.sg-specimen-label code { text-transform: none; letter-spacing: 0; color: var(--ink) }
+
+/* A component demo showing what a real .hero h1 looks like, without actually being a
+   second h1 on this page — role="heading" aria-level="4" keeps it a heading at the
+   correct nested level (this page's own real ladder is h1 → h2 → h3 → here).
+   A <div>, not a <p>, so styles.css's `.hero-copy > p:not(...)` rule (tag-qualified)
+   never matches it — no specificity fight needed. */
+.sg-hero-h1-sample {
+  margin: 0; font-family: Outfit, sans-serif; font-weight: 700;
+  font-size: clamp(2rem, 9vw, 3.25rem); line-height: 1.08; letter-spacing: -1.2px;
+}
+.sg-hero-h1-sample em { color: var(--yellow); font-style: normal }
+
+/* ── Component demo frames ──────────────────────────────── */
+.sg-demo {
+  margin: 0 0 20px; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff;
+}
+.sg-demo-label {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  background: var(--canvas); color: var(--muted);
+  font-size: 12px; font-weight: 700; letter-spacing: .3px;
+}
+.sg-demo-label code { color: var(--ink) }
+.sg-demo-body { padding: 20px }
+.sg-demo-body.sg-flush { padding: 0 }
+.sg-demo-body.sg-dark { background: var(--ink) }
+.sg-demo-body.sg-canvas { background: var(--canvas) }
+.sg-demo-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start }
+
+/* Demos of components that are normally position:fixed/sticky need containing —
+   otherwise they would fix themselves to the *page* viewport, not the demo box. */
+.sg-frame { position: relative; overflow: hidden; background: var(--canvas) }
+.sg-frame .thumb-bar,
+.sg-frame .clock-hero { position: static !important; box-shadow: none !important }
+
+/* ── Ratio tables ────────────────────────────────────────── */
+.sg-ratio { font-variant-numeric: tabular-nums; font-weight: 700 }
+.sg-pass { color: var(--green) }
+.sg-decorative { color: var(--muted); font-weight: 400 }
+
+/* ── Prose lists reused across §5–7 ──────────────────────── */
+.sg-list { margin: 0; padding-left: 20px; display: grid; gap: 10px; font-size: 15px; max-width: 680px }
+.sg-list li strong { color: var(--ink) }
+
+@media (min-width: 700px) {
+  .sg-swatch-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) }
+  .sg-nav { position: static; background: none; border-bottom: 0; backdrop-filter: none; flex-wrap: wrap; padding: 0 }
+}
