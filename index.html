@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#182542" />
+  <title>Sign up — Balance Tri Club, Beat the clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the sign-up form</a>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/balance-logo.png" alt="Balance Tri Club" />
+      </div>
+      <div class="header-actions">
+        <p class="sync-status">
+          <span class="visually-hidden">Sheet connection:</span>
+          <span class="sync-pill" id="syncPill">Local only</span>
+        </p>
+        <button class="text-button" id="refreshButton" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <fieldset class="race-pick" id="racePicker">
+      <legend>Which race</legend>
+      <div class="race-pick-options">
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-1" value="1" checked />
+          <label for="race-1"><span class="visually-hidden">Race </span>1</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-2" value="2" />
+          <label for="race-2"><span class="visually-hidden">Race </span>2</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-3" value="3" />
+          <label for="race-3"><span class="visually-hidden">Race </span>3</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-4" value="4" />
+          <label for="race-4"><span class="visually-hidden">Race </span>4</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-5" value="5" />
+          <label for="race-5"><span class="visually-hidden">Race </span>5</label>
+        </span>
+      </div>
+    </fieldset>
+
+    <main class="view" id="main">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">PREDICTION RACE · RACE <span data-race-number>1</span> OF 5</p>
+          <h1>Call your time. <em>Then run it.</em></h1>
+          <p>Speed counts for nothing today. Write down the time you think you'll finish in, then go and run it. Whoever lands closest to their own call wins — no watches on the course, no excuses.</p>
+          <p class="race-count">
+            <span class="race-count-highlight"><span id="racerCount">0</span> on the start list</span>
+            across <span id="waveCount">0</span> waves
+          </p>
+        </div>
+      </div>
+
+      <form id="signupForm" class="panel" novalidate>
+        <div class="panel-heading">
+          <p class="eyebrow">RACE <span data-race-number>1</span></p>
+          <h2>Add yourself to the start list</h2>
+        </div>
+        <div class="add-form-fields">
+          <label for="nameInput">Your name</label>
+          <input name="name" id="nameInput" autocomplete="name" placeholder="e.g. Priya" aria-describedby="nameHelp" />
+          <p class="helper-text" id="nameHelp">Same name each race, please — that's how we track you across the series.</p>
+
+          <fieldset class="time-field">
+            <legend>Your predicted time</legend>
+            <div class="two-columns">
+              <span class="field">
+                <label for="minutesInput">Minutes</label>
+                <input name="minutes" id="minutesInput" type="number" inputmode="numeric" min="0" max="599" step="1" placeholder="0" aria-describedby="predHelp" />
+              </span>
+              <span class="field">
+                <label for="secondsInput">Seconds</label>
+                <input name="seconds" id="secondsInput" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" aria-describedby="predHelp" />
+              </span>
+            </div>
+            <p class="helper-text" id="predHelp">Whatever you write down is the time you're chasing. Closest to it takes the win.</p>
+          </fieldset>
+        </div>
+        <p class="form-error hidden" id="signupError" role="alert"></p>
+        <div class="dialog-footer">
+          <button class="primary-button" type="submit">Add me to the race <span aria-hidden="true">+</span></button>
+        </div>
+      </form>
+
+      <div class="confirm-card hidden" id="signupConfirm">
+        <p class="eyebrow">YOU'RE IN</p>
+        <p class="confirm-line" id="confirmLine"></p>
+        <p class="confirm-detail" id="confirmDetail"></p>
+      </div>
+
+      <div class="section-head">
+        <h2 id="startListHeading" tabindex="-1">Start list — race <span data-race-number>1</span></h2>
+        <p class="helper-text" id="waveNote">Waves group everyone within five minutes of each other’s call, and lock in the moment wave 1 starts.</p>
+      </div>
+      <div id="startList" class="wave-grid"></div>
+      <p class="empty-state hidden" id="startListEmpty">Nobody's signed up yet. Be the first name on the sheet.</p>
+    </main>
+  </div>
+
+  <p class="visually-hidden" id="announcer" role="status" aria-live="polite"></p>
+
+  <script src="core.js"></script>
+  <script src="input.js"></script>
+</body>
+</html>

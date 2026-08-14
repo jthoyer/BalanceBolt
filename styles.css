@@ -1,0 +1,469 @@
+/* Balance Tri Club — prediction race timing.
+   Mobile first: everything below is written for a phone held at the finish line,
+   and only widens out at the breakpoints near the bottom of this file.
+   Design tokens lifted from the club race calendar app so the two feel like one product.
+   Measured contrast ratios for every pair live in STYLEGUIDE.md. */
+
+:root {
+  --ink: #182542;
+  --muted: #566177;
+  --line: #d9dfe8;          /* decorative container edges only */
+  --line-strong: #78849c;   /* anything that is a control: 3.76:1 on white */
+  --canvas: #f7f8fa;
+  --yellow: #f8c44f;        /* fills only — 9.41:1 with ink text on top */
+  --yellow-soft: #ffe08f;   /* small text on ink or green: 11.80:1 / 5.08:1 */
+  --green: #116b43;
+  --green-bg: #e8f6ee;
+  --navy-bg: #eef2fb;
+  --slate: #3f4d6b;         /* a finished wave */
+  --brand-blue: #00a3e0;    /* brand mark only, never text */
+  --red: #b3261e;
+  --red-bg: #fdecec;
+  --focus: #285ba8;
+  --tap: 48px;                       /* comfortable thumb target */
+  --tap-min: 44px;                   /* never smaller than this */
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --navbar-height: calc(64px + var(--safe-bottom));
+}
+
+* { box-sizing: border-box }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  /* Keep focused things clear of the sticky clock and the fixed thumb bar. */
+  scroll-padding: 96px 0 calc(var(--navbar-height) + 24px);
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font: 400 16px/1.5 "DM Sans", Arial, sans-serif;
+}
+body.has-thumb-bar { padding-bottom: calc(var(--navbar-height) + 16px) }
+
+.shell { width: min(1100px, calc(100% - 32px)); margin: auto }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.hidden { display: none !important }
+
+.skip-link {
+  position: absolute; left: 8px; top: -80px; z-index: 60;
+  padding: 12px 18px; border-radius: 9px;
+  background: var(--ink); color: #fff;
+  font: 700 15px "DM Sans", sans-serif; text-decoration: none;
+  transition: top .15s ease;
+}
+.skip-link:focus { top: 8px }
+
+/* ── Top bar ─────────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: 76px;
+}
+.brand { display: flex; align-items: center }
+.brand-logo { display: block; height: 46px; width: auto }
+.header-actions { display: flex; align-items: center; gap: 4px }
+
+.sync-status { margin: 0 }
+.sync-pill {
+  display: inline-block;
+  padding: 6px 11px; border-radius: 999px;
+  background: var(--navy-bg); color: var(--muted);
+  font-size: 12px; font-weight: 700; letter-spacing: .3px; white-space: nowrap;
+}
+.sync-pill.ok { background: var(--green-bg); color: var(--green) }
+.sync-pill.error { background: var(--red-bg); color: var(--red) }
+
+.text-button {
+  min-width: var(--tap); min-height: var(--tap);
+  border: 0; background: transparent; color: var(--muted);
+  font: 700 14px "DM Sans", sans-serif; cursor: pointer;
+}
+.text-button:hover { color: var(--ink) }
+
+/* ── Race 1–5 picker ─────────────────────────────────────── */
+/* Native radios under the paint, so arrow keys and screen readers work for free. */
+.race-pick { margin: 0 0 18px; padding: 0; border: 0; min-width: 0 }
+.race-pick legend {
+  padding: 0; margin-bottom: 7px;
+  color: var(--muted); font-size: 12px; font-weight: 700;
+  letter-spacing: .9px; text-transform: uppercase;
+}
+.race-pick-options { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px }
+.race-pick-option { position: relative; display: block }
+.race-pick-option input {
+  position: absolute; top: 0; left: 0;
+  width: 1px; height: 1px; margin: 0; opacity: 0;
+}
+.race-pick-option label {
+  display: flex; align-items: center; justify-content: center;
+  margin: 0; min-height: var(--tap-min);
+  border: 1px solid var(--line-strong); border-radius: 9px;
+  background: #fff; color: var(--ink);
+  font: 700 17px Outfit, sans-serif; font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.race-pick-option input:checked + label {
+  background: var(--ink); border-color: var(--ink); color: #fff;
+}
+.race-pick-option input:focus-visible + label {
+  outline: 3px solid var(--focus); outline-offset: 3px;
+}
+
+/* ── Thumb bar (fixed to the bottom on phones) ───────────── */
+.thumb-bar {
+  position: fixed; inset: auto 0 0 0; z-index: 20;
+  display: flex; align-items: stretch; gap: 6px;
+  padding: 8px 8px calc(8px + var(--safe-bottom));
+  background: rgba(255, 255, 255, .97);
+  border-top: 1px solid var(--line-strong);
+  backdrop-filter: blur(8px);
+}
+.tab-strip { display: flex; flex: 1 1 auto; gap: 4px }
+.view-tab {
+  flex: 1; min-height: var(--tap-min); padding: 8px 6px;
+  border: 1px solid transparent; border-radius: 9px;
+  background: transparent; color: var(--muted);
+  font: 700 14px "DM Sans", sans-serif; white-space: nowrap; cursor: pointer;
+}
+.view-tab[aria-selected="true"] { background: var(--ink); border-color: var(--ink); color: #fff }
+
+
+/* ── Hero ────────────────────────────────────────────────── */
+.hero { border-radius: 9px; overflow: hidden; background: var(--ink); color: #fff }
+.hero-copy { padding: 28px 22px }
+.eyebrow {
+  margin: 0 0 8px; color: var(--muted);
+  font: 700 12px "DM Sans", sans-serif; letter-spacing: 1.2px;
+}
+.hero .eyebrow, .podium-card .eyebrow, .confirm-card .eyebrow { color: var(--yellow-soft) }
+.hero h1 {
+  margin: 0; font-family: Outfit, sans-serif;
+  font-size: clamp(2rem, 9vw, 3.25rem); line-height: 1.08; letter-spacing: -1.2px;
+}
+.hero h1.eyebrow { font: 700 12px "DM Sans", sans-serif; letter-spacing: 1.2px }
+.hero h1 em { color: var(--yellow); font-style: normal }
+.hero-copy > p:not(.eyebrow):not(.global-clock):not(.clock-sub):not(.race-count) {
+  max-width: 460px; margin: 14px 0 20px; color: #edf0f7; line-height: 1.6;
+}
+.race-count { margin: 0; font: 700 22px Outfit, sans-serif; letter-spacing: -.5px }
+.race-count-highlight { color: var(--yellow) }
+
+/* The race clock stays glued to the top of race control while you scroll. */
+.clock-hero {
+  position: sticky; top: 0; z-index: 10;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(18, 31, 55, .12);
+}
+.clock-hero .hero-copy { padding: 16px 22px }
+.global-clock {
+  margin: 0; font-family: Outfit, sans-serif; font-weight: 700;
+  font-size: clamp(2.75rem, 16vw, 5rem); line-height: 1;
+  letter-spacing: -2px; font-variant-numeric: tabular-nums;
+}
+.global-clock.stopped { color: var(--yellow-soft) }
+.clock-sub { margin: 4px 0 0; color: #edf0f7; font-size: 14px; font-weight: 700 }
+
+/* ── Panels & forms ──────────────────────────────────────── */
+.panel {
+  margin: 20px 0;
+  padding: 22px 18px;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff;
+}
+.panel-heading { margin-bottom: 10px }
+.panel-heading h2, .section-head h1, .section-head h2 {
+  margin: 0; font-family: Outfit, sans-serif; font-size: 24px;
+}
+.section-head { margin: 28px 0 12px }
+.section-head .helper-text, .panel-heading .helper-text { margin: 6px 0 0 }
+.view > .section-head:first-child { margin-top: 4px }
+
+.add-form-fields { display: grid }
+label {
+  display: block; margin: 14px 0 6px;
+  color: var(--ink); font-size: 14px; font-weight: 700;
+}
+input:not([type="radio"]), select {
+  width: 100%; min-height: var(--tap); margin: 0;
+  border: 1px solid var(--line-strong); border-radius: 9px; padding: 11px 12px;
+  background: #fff; color: var(--ink);
+  font: 16px "DM Sans", sans-serif;   /* 16px keeps iOS from zooming on focus */
+}
+::placeholder { color: var(--muted); opacity: 1 }
+input[aria-invalid="true"] { border-color: var(--red); border-width: 2px }
+
+.field { display: block }
+.time-field { margin: 14px 0 0; padding: 0; border: 0; min-width: 0 }
+.time-field legend { padding: 0; color: var(--ink); font-size: 14px; font-weight: 700 }
+.two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.two-columns input { font-size: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums }
+.helper-text { margin: 6px 0 0; color: var(--muted); font-size: 14px; font-weight: 400 }
+.form-error {
+  margin: 14px 0 0; padding: 10px 12px; border-radius: 9px;
+  background: var(--red-bg); color: var(--red); font-size: 14px; font-weight: 700;
+}
+
+.primary-button, .secondary-button, .save-button {
+  width: 100%; min-height: 52px; padding: 12px 18px;
+  border: 1px solid transparent; border-radius: 9px;
+  font: 700 16px "DM Sans", sans-serif; cursor: pointer;
+}
+.primary-button { background: var(--yellow); color: var(--ink) }
+.primary-button span { margin-left: 8px; font-size: 17px }
+.secondary-button { background: #eef0f4; border-color: var(--line-strong); color: var(--ink) }
+.secondary-button.danger { background: var(--red-bg); border-color: var(--red); color: var(--red) }
+.save-button { background: var(--ink); color: #fff }
+.dialog-footer { display: flex; flex-direction: column; gap: 9px; margin-top: 20px }
+button[disabled] { opacity: .7; cursor: not-allowed }
+
+/* Small, low-emphasis actions. Still 44px tall — thumbs do not care about emphasis. */
+.quiet-button {
+  flex-shrink: 0; min-height: var(--tap-min); padding: 8px 14px;
+  border: 1px solid var(--line-strong); border-radius: 9px;
+  background: #fff; color: var(--ink);
+  font: 700 13px "DM Sans", sans-serif; cursor: pointer;
+}
+.quiet-button:hover { border-color: var(--red); background: var(--red-bg); color: var(--red) }
+
+.confirm-card { margin: 18px 0; padding: 20px 18px; border-radius: 9px; background: var(--green); color: #fff }
+.confirm-line { margin: 0; font: 700 22px Outfit, sans-serif; letter-spacing: -.4px }
+.confirm-detail { margin: 6px 0 0; color: #e7f4ec; font-size: 14px }
+
+/* ── Start list ──────────────────────────────────────────── */
+.wave-grid { display: grid; gap: 12px }
+.wave-card { border: 1px solid var(--line); border-radius: 9px; background: #fff; overflow: hidden }
+.wave-card-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 16px; background: var(--ink); color: #fff;
+}
+.wave-card-head h3 { margin: 0; font: 700 18px Outfit, sans-serif }
+.wave-card-head .wave-size { flex-shrink: 0; color: #e6ebf5; font-size: 13px; font-weight: 700 }
+.wave-card-title { min-width: 0 }
+.wave-band {
+  display: block; margin-top: 2px;
+  color: #e6ebf5; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.wave-card ul { margin: 0; padding: 4px 16px 10px; list-style: none }
+
+.roster-entry {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid #eff1f4; font-size: 15px;
+}
+.roster-entry:last-child { border-bottom: 0 }
+.roster-who { display: flex; align-items: center; gap: 10px; min-width: 0; flex-wrap: wrap }
+.bib {
+  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 32px; padding: 0 7px;
+  border-radius: 999px; background: var(--navy-bg); color: var(--ink);
+  font: 700 15px Outfit, sans-serif; font-variant-numeric: tabular-nums;
+}
+.roster-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700 }
+.roster-pred { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums }
+
+/* ── Race control ────────────────────────────────────────── */
+.quick-finish-row { display: grid; gap: 12px }
+.quick-finish input { font-size: 22px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums }
+
+.wave-list { display: flex; flex-direction: column; gap: 12px }
+.wave-block { border: 1px solid var(--line); border-radius: 9px; background: #fff; overflow: hidden }
+.wave-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 14px 16px; background: var(--ink); color: #fff;
+}
+.wave-bar.running { background: var(--green) }
+.wave-bar.done { background: var(--slate) }
+.wave-bar h3 { margin: 0; font: 700 20px Outfit, sans-serif }
+.wave-bar .wave-meta { margin: 2px 0 0; color: #e6ebf5; font-size: 14px }
+.wave-bar-main { flex: 1; min-width: 120px }
+.wave-clock { margin: 0; font: 700 28px Outfit, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -1px }
+.wave-clock.waiting { color: #e6ebf5; font-size: 15px; font-weight: 700; letter-spacing: 0 }
+/* A stopped clock reads as final. The state is also stated in words under the race clock,
+   so this tint is reinforcement, never the only signal. */
+.wave-clock.stopped { color: var(--yellow-soft) }
+.start-button {
+  flex-basis: 100%;
+  min-height: 56px; padding: 14px 24px;
+  border: 0; border-radius: 9px; background: var(--yellow); color: var(--ink);
+  font: 700 17px "DM Sans", sans-serif; cursor: pointer;
+}
+.wave-body { padding: 4px 16px 12px }
+
+.timing-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid #eff1f4;
+}
+.timing-row:last-child { border-bottom: 0 }
+/* When the row wraps on a narrow phone the time and its button stay on the thumb side. */
+.timing-result { display: flex; align-items: center; gap: 10px; margin-left: auto; font-variant-numeric: tabular-nums }
+.timing-elapsed { font: 700 19px Outfit, sans-serif }
+.timing-delta { font-size: 13px; font-weight: 700 }
+.delta-good { color: var(--green) }
+.delta-off { color: var(--muted) }
+.finish-button {
+  min-height: var(--tap); padding: 10px 22px;
+  border: 0; border-radius: 9px; background: var(--ink); color: #fff;
+  font: 700 15px "DM Sans", sans-serif; cursor: pointer;
+}
+.finish-button[disabled] { background: #eef0f4; color: var(--muted) }
+
+.danger-zone { margin: 32px 0 24px; padding: 20px 18px; border: 1px dashed var(--line-strong); border-radius: 9px }
+.danger-zone h2 { margin: 0 0 6px; font-family: Outfit, sans-serif; font-size: 20px }
+.danger-actions { display: grid; gap: 9px; margin-top: 14px }
+
+/* ── Leaderboard ─────────────────────────────────────────── */
+.podium { display: grid; gap: 12px }
+.podium-card { padding: 20px 18px; border-radius: 9px; color: #fff }
+.podium-card.first { background: var(--green) }
+.podium-card.last { background: var(--ink) }
+.podium-name { margin: 0; font: 700 26px Outfit, sans-serif; letter-spacing: -.5px }
+.podium-delta { margin: 6px 0 0; font: 700 22px Outfit, sans-serif; font-variant-numeric: tabular-nums }
+.podium-detail { margin: 4px 0 0; color: #e7f4ec; font-size: 14px; font-variant-numeric: tabular-nums }
+.podium-card.last .podium-detail { color: #e6ebf5 }
+
+.board-wrap { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: #fff }
+.board { width: 100%; border-collapse: collapse; font-size: 15px }
+.board th, .board td { padding: 11px 12px; text-align: left; border-bottom: 1px solid #eff1f4 }
+.board thead th {
+  background: var(--navy-bg); color: var(--muted);
+  font-size: 11px; letter-spacing: .8px; text-transform: uppercase; white-space: nowrap;
+}
+.board .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
+.board .col-rank { width: 40px; padding-right: 0 }
+.board .col-who { font-weight: 400 }
+.board tbody tr.is-first { background: var(--green-bg) }
+.board tbody tr.is-last { background: #fdf6e4 }
+.board tbody tr.is-running { color: var(--muted) }
+
+/* Series: not-yet-qualified rows and dropped races. The meaning is carried by the text
+   ("needs 2 more to qualify") and the strikethrough — never by colour alone. */
+.board tbody tr.not-eligible { background: var(--canvas) }
+.board tbody tr.not-eligible .rank-badge { color: var(--muted) }
+.board td.is-dropped { color: var(--muted) }
+.board td.is-dropped s { text-decoration-thickness: 2px }
+.racer-cell { display: flex; align-items: center; gap: 9px; min-width: 0 }
+.racer-sub { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums }
+.col-wide { display: none }                    /* wide columns fold into .racer-sub on phones */
+.rank-badge { font: 700 16px Outfit, sans-serif; font-variant-numeric: tabular-nums }
+.status-tag {
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  background: var(--navy-bg); color: var(--muted); font-size: 12px; font-weight: 700;
+}
+
+/* ── Series ──────────────────────────────────────────────── */
+.rule-card {
+  margin: 16px 0 4px; padding: 18px 16px;
+  border: 1px solid var(--line); border-left: 4px solid var(--ink); border-radius: 9px;
+  background: #fff;
+}
+.rule-card h2 { margin: 0 0 10px; font: 700 18px Outfit, sans-serif }
+.rule-list { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px }
+.rule-note { margin: 12px 0 0; color: var(--muted); font-size: 14px }
+
+/* ── Prizes ──────────────────────────────────────────────── */
+.prize-grid { display: grid; gap: 12px }
+.prize-card { padding: 16px 18px; border: 1px solid var(--line); border-radius: 9px; background: #fff }
+.prize-card h3 {
+  margin: 0 0 6px; color: var(--muted);
+  font: 700 13px "DM Sans", sans-serif; letter-spacing: .6px; text-transform: uppercase;
+}
+.prize-winner { margin: 0; font: 700 20px Outfit, sans-serif }
+.prize-detail { margin: 4px 0 0; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums }
+.prize-card.adhoc { border-color: #e0c07a; background: #fffaf0 }
+.prize-card.series { border-color: var(--green); border-left-width: 4px; background: var(--green-bg) }
+.prize-card .quiet-button { margin-top: 12px }
+
+.empty-state {
+  padding: 26px 20px; border: 1px dashed var(--line-strong); border-radius: 9px;
+  background: #fff; color: var(--muted); text-align: center;
+}
+
+/* ── Focus & motion ──────────────────────────────────────── */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--focus); outline-offset: 3px;
+}
+.hero button:focus-visible, .wave-bar button:focus-visible { outline-color: #fff }
+.view:focus { outline: none }
+.view:focus-visible { outline: 3px solid var(--focus); outline-offset: -4px }
+.board-wrap:focus-visible { outline-offset: 2px }
+
+/* In forced-colors the painted backgrounds vanish, so selected state needs a border. */
+@media (forced-colors: active) {
+  .race-pick-option input:checked + label,
+  .view-tab[aria-selected="true"] { outline: 3px solid CanvasText; outline-offset: -3px }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important }
+}
+
+/* ── Tablet and up ───────────────────────────────────────── */
+@media (min-width: 700px) {
+  html { scroll-padding: 8px 0 24px }
+  body.has-thumb-bar { padding-bottom: 0 }
+  .shell { width: min(1100px, calc(100% - 40px)) }
+
+  .topbar { min-height: 112px }
+  .brand-logo { height: 80px }
+  .header-actions { gap: 10px }
+
+  .race-pick-options { grid-template-columns: repeat(5, minmax(0, 84px)) }
+
+  /* the thumb bar returns to pills under the logo */
+  .thumb-bar {
+    position: static; gap: 10px; padding: 0; margin-bottom: 24px;
+    background: none; border-top: 0; backdrop-filter: none; flex-wrap: wrap;
+  }
+  .tab-strip { flex: 0 0 auto; gap: 8px }
+  .view-tab {
+    flex: 0 0 auto; padding: 10px 20px; min-height: var(--tap);
+    border-color: var(--line-strong); background: #fff;
+  }
+
+  .hero-copy { padding: 48px 54px }
+  .race-count { font-size: 30px }
+  .clock-hero { position: static; box-shadow: none; margin-bottom: 24px }
+  .clock-hero .hero-copy { padding: 32px 54px }
+  .clock-sub { font-size: 16px; margin-top: 10px }
+
+  .panel { padding: 28px }
+  .panel-heading h2, .section-head h1, .section-head h2 { font-size: 28px }
+  .primary-button, .secondary-button, .save-button { width: auto }
+  .dialog-footer { flex-direction: row; justify-content: flex-end }
+  .quick-finish-row { grid-template-columns: 1fr auto; align-items: end }
+  .quick-finish input { text-align: left; font-size: 18px }
+
+  .wave-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
+  .wave-bar { gap: 18px; padding: 16px 20px; flex-wrap: nowrap }
+  .start-button { flex-basis: auto; min-height: 52px }
+  .wave-body { padding: 6px 20px 16px }
+  .wave-clock { font-size: 30px }
+
+  .danger-actions { grid-auto-flow: column; justify-content: start }
+
+  .podium { grid-template-columns: 1fr 1fr }
+  .podium-card { padding: 24px }
+  .podium-name { font-size: 30px }
+  .board th, .board td { padding: 12px 16px; white-space: nowrap }
+  .board .col-rank { width: 56px; padding-right: 12px }
+  .col-wide { display: table-cell }
+  .racer-sub { display: none }
+  .rule-card { padding: 22px 24px }
+  .prize-grid { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
+  .prize-winner { font-size: 22px }
+  .empty-state { padding: 34px }
+}
+
+/* ── Desktop ─────────────────────────────────────────────── */
+@media (min-width: 1000px) {
+  .podium { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) }
+}

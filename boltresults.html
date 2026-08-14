@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#182542" />
+  <title>Race control &amp; results — Balance Tri Club, Beat the clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="has-thumb-bar">
+  <a class="skip-link" href="#main">Skip to the main content</a>
+
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/balance-logo.png" alt="Balance Tri Club" />
+      </div>
+      <div class="header-actions">
+        <p class="sync-status">
+          <span class="visually-hidden">Sheet connection:</span>
+          <span class="sync-pill" id="syncPill">Local only</span>
+        </p>
+        <button class="text-button" id="refreshButton" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <fieldset class="race-pick" id="racePicker">
+      <legend>Which race</legend>
+      <div class="race-pick-options">
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-1" value="1" checked />
+          <label for="race-1"><span class="visually-hidden">Race </span>1</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-2" value="2" />
+          <label for="race-2"><span class="visually-hidden">Race </span>2</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-3" value="3" />
+          <label for="race-3"><span class="visually-hidden">Race </span>3</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-4" value="4" />
+          <label for="race-4"><span class="visually-hidden">Race </span>4</label>
+        </span>
+        <span class="race-pick-option">
+          <input type="radio" name="race" id="race-5" value="5" />
+          <label for="race-5"><span class="visually-hidden">Race </span>5</label>
+        </span>
+      </div>
+    </fieldset>
+
+    <nav class="thumb-bar" aria-label="Sections">
+      <div class="tab-strip" role="tablist" aria-label="Race control and results">
+        <button type="button" class="view-tab" role="tab" data-view="timing" id="tab-timing" aria-controls="view-timing" aria-selected="true">Timing</button>
+        <button type="button" class="view-tab" role="tab" data-view="board" id="tab-board" aria-controls="view-board" aria-selected="false" tabindex="-1">Results</button>
+        <button type="button" class="view-tab" role="tab" data-view="series" id="tab-series" aria-controls="view-series" aria-selected="false" tabindex="-1">Series</button>
+      </div>
+    </nav>
+
+    <main id="main">
+      <!-- ─────────────────────── RACE CONTROL ─────────────────────── -->
+      <section id="view-timing" class="view" role="tabpanel" aria-labelledby="tab-timing" tabindex="-1">
+        <div class="hero clock-hero">
+          <div class="hero-copy">
+            <h1 class="eyebrow">RACE CONTROL · RACE <span data-race-number>1</span></h1>
+            <p class="global-clock" id="globalClock" role="timer" aria-live="off">0:00</p>
+            <p class="clock-sub" id="clockSub">Waiting on wave 1.</p>
+          </div>
+        </div>
+
+        <form class="panel quick-finish" id="quickFinishForm" novalidate>
+          <div class="panel-heading">
+            <h2>Finish by number</h2>
+            <p class="helper-text" id="quickFinishHelp">Quickest way to log a finisher: type their race number and stop the clock.</p>
+          </div>
+          <div class="quick-finish-row">
+            <span class="field">
+              <label for="quickFinishInput">Race number</label>
+              <input id="quickFinishInput" inputmode="numeric" autocomplete="off" placeholder="e.g. 7" aria-describedby="quickFinishHelp" />
+            </span>
+            <button class="save-button" type="submit">Stop their clock</button>
+          </div>
+          <p class="form-error hidden" id="quickFinishError" role="alert"></p>
+        </form>
+
+        <div class="section-head">
+          <h2>Waves</h2>
+          <p class="helper-text">Each wave has its own gun and its own clock. Everything keeps running until the last racer is home, then every clock stops together.</p>
+        </div>
+        <div id="waveControls" class="wave-list"></div>
+        <p class="empty-state hidden" id="controlEmpty">No racers in race <span data-race-number>1</span> yet. Send people to the sign-up page.</p>
+
+        <div class="danger-zone">
+          <h2>Race admin</h2>
+          <p class="helper-text">These only touch race <span data-race-number>1</span>. The other four races are left alone.</p>
+          <div class="danger-actions">
+            <button type="button" class="secondary-button" id="resetTimesButton">
+              Clear race <span data-race-number>1</span> times, keep racers
+            </button>
+            <button type="button" class="secondary-button danger" id="resetRaceButton">
+              Wipe race <span data-race-number>1</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─────────────────────── LEADERBOARD ─────────────────────── -->
+      <section id="view-board" class="view hidden" role="tabpanel" aria-labelledby="tab-board" tabindex="-1">
+        <div class="section-head">
+          <h1>Race <span data-race-number>1</span> leaderboard</h1>
+          <p class="helper-text">Ranked by how close each racer landed to their own predicted time.</p>
+        </div>
+
+        <div class="podium" id="podium"></div>
+
+        <div class="board-wrap" role="region" aria-labelledby="boardCaption" tabindex="0">
+          <table class="board" id="boardTable">
+            <caption id="boardCaption" class="visually-hidden">
+              Racers ranked by the difference between their actual and predicted time
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" class="col-rank">Place</th>
+                <th scope="col">Racer</th>
+                <th scope="col" class="num col-wide">Predicted</th>
+                <th scope="col" class="num col-wide">Actual</th>
+                <th scope="col" class="num">Difference</th>
+              </tr>
+            </thead>
+            <tbody id="boardBody"></tbody>
+          </table>
+        </div>
+        <p class="empty-state hidden" id="boardEmpty">Nothing to rank yet. The board fills up as racers cross the line.</p>
+
+        <div class="section-head">
+          <h2>Race <span data-race-number>1</span> prizes</h2>
+          <p class="helper-text">Handed out automatically, plus whatever you dream up on the day.</p>
+        </div>
+        <div id="prizeList" class="prize-grid"></div>
+
+        <form class="panel" id="adhocForm" novalidate>
+          <div class="panel-heading">
+            <p class="eyebrow">ADHOC PRIZE</p>
+            <h2>Make one up</h2>
+          </div>
+          <div class="add-form-fields">
+            <label for="prizeLabel">Prize name</label>
+            <input name="label" id="prizeLabel" placeholder="e.g. Best hat" />
+            <label for="prizeRacer">Give it to</label>
+            <select name="racerId" id="prizeRacer"></select>
+          </div>
+          <p class="form-error hidden" id="prizeError" role="alert"></p>
+          <div class="dialog-footer">
+            <button class="primary-button" type="submit">Award it <span aria-hidden="true">★</span></button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ───────────────────── SERIES STANDINGS ───────────────────── -->
+      <section id="view-series" class="view hidden" role="tabpanel" aria-labelledby="tab-series" tabindex="-1">
+        <div class="section-head">
+          <h1>Series standings</h1>
+          <p class="helper-text">Your best four races of the five. Finish four to be in the running for the grand prize.</p>
+        </div>
+
+        <div class="rule-card">
+          <h2>How the series is scored</h2>
+          <ol class="rule-list">
+            <li><strong>Best four of five.</strong> We count your four best races. Turn up to all five and your worst one is dropped — one shocker won't sink your series.</li>
+            <li><strong>Finish four to qualify.</strong> Anyone on fewer than four finished races isn't in the running for the grand prize, however good those races were.</li>
+            <li><strong>Smallest total wins.</strong> Add up the differences from your best four. Closest to your own calls takes the grand prize.</li>
+          </ol>
+          <p class="rule-note">Differences are absolute — a minute under your call costs exactly as much as a minute over it. Every race still hands out its own prizes on the day, qualified or not.</p>
+        </div>
+
+        <div class="board-wrap" role="region" aria-labelledby="seriesCaption" tabindex="0">
+          <table class="board series-board" id="seriesTable">
+            <caption id="seriesCaption" class="visually-hidden">
+              Series standings for the grand prize, ranked on each person's best four races.
+              Anyone with fewer than four finished races is listed below the qualifiers and
+              is not in the running. A struck-through race time is one that was dropped.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" class="col-rank">Place</th>
+                <th scope="col">Person</th>
+                <th scope="col" class="num col-wide">R1</th>
+                <th scope="col" class="num col-wide">R2</th>
+                <th scope="col" class="num col-wide">R3</th>
+                <th scope="col" class="num col-wide">R4</th>
+                <th scope="col" class="num col-wide">R5</th>
+                <th scope="col" class="num col-wide">Races done</th>
+                <th scope="col" class="num">Best 4</th>
+              </tr>
+            </thead>
+            <tbody id="seriesBody"></tbody>
+          </table>
+        </div>
+        <p class="empty-state hidden" id="seriesEmpty">No series results yet. They appear once someone finishes a race.</p>
+
+        <div class="section-head">
+          <h2>Series prizes</h2>
+          <p class="helper-text">These two span the whole series. Every race still hands out its own on the day.</p>
+        </div>
+        <div id="seriesPrizes" class="prize-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <p class="visually-hidden" id="announcer" role="status" aria-live="polite"></p>
+
+  <script src="core.js"></script>
+  <script src="results.js"></script>
+</body>
+</html>

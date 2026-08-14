@@ -1,0 +1,170 @@
+# Balance Tri Club — Beat the clock
+
+A prediction race timer for a **five-race series**. Racers call their finish time
+before the gun; the winner is whoever lands closest to their own call. Speed is
+irrelevant, which is the point.
+
+Static HTML/CSS/JS — no build step. Styled with the same tokens as the
+[club race calendar](https://jthoyer.github.io/BalanceTRI-app/), and mobile first,
+because it gets used one-handed at a finish line. See `STYLEGUIDE.md` for the design
+system and the accessibility rules the code follows.
+
+## Two pages
+
+| Page | Who has it open | What is on it |
+|---|---|---|
+| **`index.html`** | The sign-up table, a phone passed around | Name, predicted minutes and seconds, confirmation of race number and wave, the start list |
+| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
+
+The two pages are **independent — neither links to the other**. Open whichever one the
+job needs: the sign-up table has no route into race control, and the timing screen has
+no route back to sign-up. Both carry a **Race 1–5** picker. The selected race is stored
+on the device and mirrored into the URL as `?race=2`, so a screen can be parked on one
+race and left alone.
+
+## How a race runs
+
+1. **Sign up** — on `index.html`, pick the race, enter a name and a
+   predicted time. Racers get the next number (1, 2, 3…) *within that race* and a wave.
+2. **Waves** — everyone whose predicted time is within **five minutes** of each other
+   goes in the same wave, so a wave leaves together and comes home together. Wave 1 is
+   the quickest calls. Four waves is a hard cap: if the field spreads across more than
+   four five-minute groups, the closest neighbouring groups are merged until four
+   remain, so one wave may span more than five minutes. The grouping
+   recalculates as people sign up and freezes the moment the first wave starts. Anyone
+   who signs up after that joins the next wave still waiting on the line.
+3. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
+   and its own clock. The race clock at the top runs from the first gun and stays stuck
+   to the top of the screen while you scroll.
+4. **Finish** — stop each racer's clock individually as they cross, either with the
+   Finish button on their row or by typing their number into **Finish by number**. The
+   global clock and every other wave keep running.
+5. **Last one home** — when the final racer's clock is stopped, the race clock *and*
+   every wave clock stop together, frozen on that instant. Nothing on the page carries
+   on counting once the race is over. Undo a finish and they all start running again.
+6. **Results** — the leaderboard updates live, ranked by the gap between actual and
+   predicted time, shown in minutes and seconds.
+
+## The series
+
+A person is the same person across all five races when their **name matches** —
+trimmed and case-insensitive, so `Ada`, ` ada ` and `ADA` are one racer. Race numbers
+are per race; predictions can differ every race; anyone can enter any or all of the
+five.
+
+**The grand prize is best four of five:**
+
+1. **Your four best races count.** Race all five and your worst result is dropped, so
+   one shocker doesn't sink a series. The dropped race still shows in the table, struck
+   through, because people want to see the one that got binned.
+2. **Finish four races to qualify.** Anyone on fewer than four is listed below the
+   qualifiers, ranked `—`, and is not in the running however good those races were.
+3. **Smallest best-four total wins.** Add up the differences from the four that count.
+
+Differences are absolute — a minute under your call costs exactly what a minute over
+costs. The rule is printed on the Series panel so nobody has to guess.
+
+## Prizes
+
+Per race, awarded automatically as results come in:
+
+| Prize | Who gets it |
+|---|---|
+| Closest to the call | Smallest gap between actual and predicted — **first place** |
+| Furthest from the call | Largest gap — **last place** |
+| Bang on | Anyone within five seconds of their own call |
+| Quickest legs | Fastest actual time on the day |
+| Off like a rabbit | Beat their prediction by the biggest margin |
+| Took the scenic route | Went over their prediction by the biggest margin |
+| Wave winner | Closest to the call in each wave |
+
+Plus **adhoc prizes** — type any prize name on the Results panel, pick a racer, award
+it. Best hat, best excuse, whatever the day throws up.
+
+Per-race prizes are unaffected by series eligibility — someone who only turns up once
+can still win every prize on the day.
+
+Across the whole series there are two:
+
+| Prize | Who gets it |
+|---|---|
+| Grand prize | Smallest **best-four** total, among people who finished at least four races |
+| Most consistent | Lowest **average** difference, across at least three completed races |
+
+The two are independent on purpose: someone with three near-perfect races can take Most
+consistent without qualifying for the grand prize.
+
+## Connecting the Google Sheet
+
+Out of the box the app stores everything in the browser on one device, which is enough
+for a small race run from a single phone. To share the series across devices —
+sign-ups on one screen, timing on another, leaderboard on a third — connect the
+spreadsheet:
+
+1. Open the [race spreadsheet](https://docs.google.com/spreadsheets/d/1exilWhjiLgbO1sGGSXqYvk20W5K5ANy3xRh0n1qCRfQ/edit).
+2. **Extensions → Apps Script**, delete what's in `Code.gs`, paste in `apps-script.gs`.
+3. **Deploy → New deployment → Web app**, execute as **Me**, access **Anyone**.
+4. Copy the `/exec` URL and paste it into `API_URL` at the top of **`core.js`**.
+
+The `Racers`, `Waves`, `Prizes` and `Meta` tabs are created automatically on first
+use. `Racers`, `Waves` and `Prizes` each carry a `race` column and every read and
+write is scoped to one race. A sheet left over from the single-race version is
+migrated the first time it is touched: a `race` column is inserted and everything
+already there is filed under race 1.
+
+The pill in the top right shows the connection state: *Local only*, *Synced*,
+*Saving…* or *Offline*. Actions taken while offline are queued in an outbox and sent
+when the signal returns, so patchy reception at the finish line never loses a time.
+
+Local storage upgrades the same way: a race saved by the previous single-race version
+is loaded into **Race 1** rather than being thrown away.
+
+## Timing accuracy
+
+Start and finish times are captured on the device the moment the button is pressed and
+stored as epoch milliseconds, so network lag never lands on a racer's result. Results
+are computed to the millisecond and displayed rounded to the second.
+
+One caveat worth knowing: elapsed time is `finish − wave start`, both read from the
+device clock. **Start a wave and finish its racers from the same device**, or from
+devices whose clocks agree. Two phones a few seconds apart will produce times a few
+seconds apart.
+
+## Running it
+
+It's a static site. Open `index.html`, or serve the folder:
+
+```bash
+python3 -m http.server 4173
+```
+
+Then visit `http://localhost:4173/`.
+
+## Deploying
+
+The site lives at [jthoyer/BalanceBolt](https://github.com/jthoyer/BalanceBolt) and is
+served by GitHub Pages, the same way the race calendar app is. `index.html` is the
+sign-up page, so the bare Pages URL is what you hand to racers; the timing screen is at
+`/boltresults.html`.
+
+```bash
+git push -u origin main
+```
+
+Then, once per repo: **Settings → Pages → Build and deployment → Source: Deploy from a
+branch**, branch `main`, folder `/ (root)`. The site appears at
+`https://jthoyer.github.io/BalanceBolt/` a minute or so later.
+
+## Files
+
+| File | What it is |
+|---|---|
+| `index.html` | Sign-up page |
+| `boltresults.html` | Race control, leaderboard, prizes, series standings |
+| `core.js` | Shared model: state, five-race storage and migration, sync and outbox, wave assignment, results, series scoring, shared chrome. **`API_URL` lives at the top** |
+| `input.js` | Sign-up page rendering and form handling |
+| `results.js` | Timing, leaderboard, prizes and series rendering |
+| `styles.css` | Mobile-first styles, club design tokens |
+| `apps-script.gs` | Google Sheets backend — paste into the spreadsheet's Apps Script |
+| `STYLEGUIDE.md` | Design system, measured contrast ratios, component patterns, tone of voice |
+| `assets/balance-logo.png` | Club logo |
