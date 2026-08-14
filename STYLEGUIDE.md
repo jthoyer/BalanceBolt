@@ -216,11 +216,11 @@ reaches navigation before content.
 
 - `.tab-strip` is `role="tablist"`; each `.view-tab` is `role="tab"` with roving
   `tabindex` and arrow-key support.
-- The bar holds tabs only. The two pages do not link to each other, so there is no
-  cross-page link pattern — if you add one, it belongs outside the tablist, because it
-  would not be a tab.
+- The bar holds tabs only. `index.html` and `boltresults.html` do not link to each
+  other, so there is no cross-page link pattern inside it — one would belong outside
+  the tablist, because it would not be a tab.
 - The sign-up page has no sections to switch between, so it has **no thumb bar at all**
-  and no `has-thumb-bar` class on `<body>`.
+  and no `has-thumb-bar` class on `<body>`. Same for `admin.html`.
 - `body.has-thumb-bar` reserves the bar's height, and `html { scroll-padding-bottom }`
   keeps focused elements from ending up underneath it.
 
@@ -265,6 +265,16 @@ nobody can derive from the table is a bug, not a feature.
 Green block shown after a successful sign-up with the race number, wave and predicted
 time. Visual confirmation only; the same text also goes to the announcer.
 
+### Admin splash (`admin.html`, `.admin-links`, `.admin-link-card`)
+The one page that deliberately links elsewhere. A hero, then two `.panel`s in a
+`.admin-links` grid (single column on phones, two from 700px), each an
+`.admin-link-card` — eyebrow, `h2`, one line of `.helper-text`, and a full-width
+button-styled `<a>` pinned to the card's bottom with `margin-top: auto` so mismatched
+copy lengths still end on the same line. No JS: the page is pure navigation, so it
+carries no `core.js` and no thumb bar. Route "for racers" through `.primary-button`
+and "for race control" through `.save-button` — matching weight, distinct colour, no
+ranking implied between the two jobs.
+
 ### Buttons
 
 | Class | Use | Look |
@@ -279,6 +289,14 @@ time. Visual confirmation only; the same text also goes to the announcer.
 | `.text-button` | Header-only, low weight | Transparent, `--muted` |
 
 Full-width on phones, `width: auto` from 700px up.
+
+`.primary-button`, `.secondary-button` and `.save-button` are also used on `<a>`
+elements (`admin.html`'s two links). A `<button>` centres its content and respects
+`width: 100%` for free; an `<a>` is inline and does neither, so
+`a.primary-button, a.secondary-button, a.save-button { display: flex; ... }` gives the
+anchor case the same layout. Keep this in mind before adding a fourth button class —
+the anchor rule needs the new class added to its selector too, or a link styled with
+it will sit left-aligned and shrink-wrapped instead of centred and full-width.
 
 ### Tables (`.board`, `.board-wrap`)
 `.board-wrap` is the scroll container and is `role="region"` + `tabindex="0"` +
@@ -363,7 +381,7 @@ each `role="tabpanel"` starts its own `h1` → `h2` → `h3` ladder.
 ARIA authoring practice: roving `tabindex`, `←`/`→`/`Home`/`End`, and focus moves into
 the panel on activation. `:focus-visible` gives a 3px `--focus` outline with 3px
 offset, switched to white on ink and green surfaces. Nothing traps focus. A skip link
-is the first element on both pages.
+is the first element on every page.
 
 **Targets and reflow.** 44px minimum on everything interactive, 48px on primary
 controls, 16px form inputs, 320px reflow with no horizontal scroll.

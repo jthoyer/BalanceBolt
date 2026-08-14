@@ -9,18 +9,21 @@ Static HTML/CSS/JS — no build step. Styled with the same tokens as the
 because it gets used one-handed at a finish line. See `STYLEGUIDE.md` for the design
 system and the accessibility rules the code follows.
 
-## Two pages
+## Three pages
 
 | Page | Who has it open | What is on it |
 |---|---|---|
 | **`index.html`** | The sign-up table, a phone passed around | Name, predicted minutes and seconds, confirmation of race number and wave, the start list |
 | **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
+| **`admin.html`** | Whoever is setting up on the day | A splash with one button to each of the two pages above — nothing else |
 
-The two pages are **independent — neither links to the other**. Open whichever one the
-job needs: the sign-up table has no route into race control, and the timing screen has
-no route back to sign-up. Both carry a **Race 1–5** picker. The selected race is stored
-on the device and mirrored into the URL as `?race=2`, so a screen can be parked on one
-race and left alone.
+`index.html` and `boltresults.html` are **independent — neither links to the other**.
+Open whichever one the job needs: the sign-up table has no route into race control, and
+the timing screen has no route back to sign-up. `admin.html` is the exception — a
+one-way jumping-off point that links to both, for whoever is running the day and needs
+to move between them. Both `index.html` and `boltresults.html` carry a **Race 1–5**
+picker; the selected race is stored on the device and mirrored into the URL as
+`?race=2`, so a screen can be parked on one race and left alone.
 
 ## How a race runs
 
@@ -159,6 +162,7 @@ branch**, branch `main`, folder `/ (root)`. The site appears at
 
 | File | What it is |
 |---|---|
+| `admin.html` | Splash page, links to sign-up and race control — no JS, static only |
 | `index.html` | Sign-up page |
 | `boltresults.html` | Race control, leaderboard, prizes, series standings |
 | `core.js` | Shared model: state, five-race storage and migration, sync and outbox, wave assignment, results, series scoring, shared chrome. **`API_URL` lives at the top** |
