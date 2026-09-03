@@ -270,9 +270,31 @@ the constant cannot change at runtime. Not a live region: it is decided before t
 page is usable, not announced mid-session. Not shown on `admin.html`, which holds no
 race data of its own.
 
+### Sync pill (`.sync-pill`)
+One small label in the header carrying five states, in priority order: **"Not saving
+on this device"** (storage refused a write — `.error`), **"Local only"** (no
+`API_URL`), **"Offline — N to send"** / **"Sheet unreachable"** (`.error`), **"Saving
+N…"**, **"Synced"** (`.ok`). Deliberately not a live region — at a four-second poll it
+would natter. Only a genuine change between online and offline is announced, once.
+
+The storage state outranks the sheet state because it is worse: an unreachable sheet
+still has every time safe on the phone, whereas a device that cannot write loses the
+lot on refresh. `save()` catches the failure rather than throwing, so the sign-up
+still lands in memory, still queues, and still draws — a volunteer mid-race gets a
+warning, not a form that silently does nothing.
+
 ### Confirm card (`.confirm-card`)
 Green block shown after a successful sign-up with the race number, wave and predicted
 time. Visual confirmation only; the same text also goes to the announcer.
+
+Shown and hidden through `showConfirm()` / `hideConfirm()` in `input.js`, never from
+`render()`: the sheet poll re-renders every `POLL_MS`, so a render-driven rule would
+snatch the card away mid-read. It goes when the answer stops applying — switching
+race, or removing the racer it names.
+
+Before the first gun it says "wave 2 **for now**", because `buildWaveMap` regroups on
+every sign-up until `wavesLocked`. Stating a fluid wave as settled is a promise the
+app cannot keep.
 
 ### Admin splash (`admin.html`, `.admin-links`, `.admin-link-card`)
 The one page that deliberately links elsewhere. A hero, then two `.panel`s in a
@@ -379,8 +401,11 @@ focus goes next. Never let focus fall back to `<body>`.
 
 **Errors.** Each form error is a `role="alert"` paragraph. On failure the offending
 field gets `aria-invalid="true"` and the error's id appended to its
-`aria-describedby`; both are cleared as soon as the field is edited. Focus is not
-moved — the alert announces and the message is visible next to the button.
+`aria-describedby`; both are cleared as soon as the field is edited. Focus moves to
+that field (`showFieldError`, `core.js`), so a keyboard or screen-reader user who
+submitted from the last box lands on the one to fix instead of hunting for it — and
+on a phone, where the message sits above the submit button and off screen, the field
+is scrolled back into view. WCAG 2.1 AA, 3.3.1.
 
 **Headings.** One `h1` per rendered view. Because panels are toggled with
 `display: none`, only the active view's headings are in the accessibility tree, so
@@ -416,10 +441,15 @@ spelling.
 - Empty states say what happens next, not what is missing: "Prizes appear as soon as
   the first racer finishes."
 - Errors are friendly and actionable, never blaming: "Pop your name in first.",
-  "Predict a time longer than zero — nobody is that quick."
+  "Give us a predicted time — even a rough one."
+- Two ways of being wrong get two messages. An empty form gets "Give us a predicted
+  time — even a rough one."; somebody who typed 0 and 0 gets "Nought is not a time.
+  What are you chasing?" Telling the second person to enter a time they believe they
+  just entered helps nobody.
 - Prize names carry the humour, interface labels do not: "Off like a rabbit", "Took
   the scenic route", "Bang on". Buttons stay literal: "Stop their clock".
-- Confirmations are plain: "Ada — racer #3, wave 3."
+- Confirmations are plain, and hedge only where the app genuinely does not know yet:
+  "Ada — racer #3, wave 3 for now." before the first gun, "wave 3" after it.
 - Sentence case for headings and buttons. Uppercase only for eyebrows and table
   headers.
 - Never call it a "user", a "participant" or an "entry". They are racers, and they

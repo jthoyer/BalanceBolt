@@ -117,16 +117,8 @@ function renderControl(v) {
 function timingRow(r, v, start) {
   const row = document.createElement('div');
   row.className = 'timing-row';
-  row.innerHTML = `
-    <span class="roster-who">
-      <span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number"></span></span>
-      <span class="roster-name"></span>
-      <span class="roster-pred"></span>
-    </span>
-    <span class="timing-result"></span>`;
-  row.querySelector('.bib-number').textContent = String(r.number);
-  row.querySelector('.roster-name').textContent = r.name;
-  row.querySelector('.roster-pred').textContent = `called ${fmtSec(r.predictedSec)}`;
+  row.innerHTML = '<span class="timing-result"></span>';
+  row.prepend(rosterWho(r));
 
   const cell = row.querySelector('.timing-result');
   const res = result(r, v);

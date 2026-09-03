@@ -78,7 +78,7 @@
         </div>
         <div class="add-form-fields">
           <label for="nameInput">Your name</label>
-          <input name="name" id="nameInput" autocomplete="name" placeholder="e.g. Priya" aria-describedby="nameHelp" />
+          <input name="name" id="nameInput" autocomplete="name" maxlength="40" placeholder="e.g. Priya" aria-describedby="nameHelp" />
           <p class="helper-text" id="nameHelp">Same name each race, please — that's how we track you across the series.</p>
 
           <fieldset class="time-field">
@@ -93,7 +93,7 @@
                 <input name="seconds" id="secondsInput" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" aria-describedby="predHelp" />
               </span>
             </div>
-            <p class="helper-text" id="predHelp">Whatever you write down is the time you're chasing. Closest to it takes the win.</p>
+            <p class="helper-text" id="predHelp">Whatever you write down is the time you’re chasing. Closest to it takes the win. Leave a box empty and we count it as zero — a flat 25 minutes is just 25 in Minutes.</p>
           </fieldset>
         </div>
         <p class="form-error hidden" id="signupError" role="alert"></p>

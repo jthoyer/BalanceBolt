@@ -4,6 +4,22 @@
 
 const signupFields = () => [$('#nameInput'), $('#minutesInput'), $('#secondsInput')];
 
+/* "YOU'RE IN" is about one sign-up that just happened. Switch race or remove the
+   racer and it is answering a question nobody is asking any more.
+   Hiding it belongs here and not in render(): the sheet poll re-renders every few
+   seconds, which would snatch the card away mid-read. */
+function showConfirm(line, detail) {
+  $('#confirmLine').textContent = line;
+  $('#confirmDetail').textContent = detail;
+  $('#signupConfirm').classList.remove('hidden');
+}
+
+const hideConfirm = () => $('#signupConfirm').classList.add('hidden');
+
+/* A second listener on the picker, alongside the one core.js wires for the race
+   itself — this is a page concern, and core.js also serves the results page. */
+$('#racePicker').addEventListener('change', hideConfirm);
+
 function render() {
   keepFocus(() => {
     setSync(syncState);
@@ -53,16 +69,8 @@ function renderStartList() {
     members.forEach(r => {
       const li = document.createElement('li');
       li.className = 'roster-entry';
-      li.innerHTML = `
-        <span class="roster-who">
-          <span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number"></span></span>
-          <span class="roster-name"></span>
-          <span class="roster-pred"></span>
-        </span>
-        <button type="button" class="quiet-button">Remove</button>`;
-      li.querySelector('.bib-number').textContent = String(r.number);
-      li.querySelector('.roster-name').textContent = r.name;
-      li.querySelector('.roster-pred').textContent = `called ${fmtSec(r.predictedSec)}`;
+      li.innerHTML = '<button type="button" class="quiet-button">Remove</button>';
+      li.prepend(rosterWho(r));
 
       const btn = li.querySelector('.quiet-button');
       btn.dataset.focusKey = `remove:${r.id}`;
@@ -72,6 +80,7 @@ function renderStartList() {
         // Their Remove button is about to vanish, so decide where focus lands first.
         const slot = $$('#startList .quiet-button').indexOf(btn);
         removeRacer(r.id);
+        hideConfirm();
         announce(`${r.name} removed from race ${currentRace}.`);
         const left = $$('#startList .quiet-button');
         (left[slot] || left[left.length - 1] || $('#startListHeading')).focus();
@@ -94,8 +103,11 @@ $('#signupForm').addEventListener('submit', e => {
   clearFieldErrors(err, signupFields());
 
   const name = nameInput.value.trim();
-  const minutes = minutesInput.value.trim() === '' ? NaN : Number(minutesInput.value);
-  const seconds = secondsInput.value.trim() === '' ? NaN : Number(secondsInput.value);
+  /* A blank box means zero. Somebody calling a flat 25 minutes types 25 and stops —
+     making them type a 0 in Seconds to be allowed in is a trap, not a rule. */
+  const partSec = input => (input.value.trim() === '' ? 0 : Number(input.value));
+  const minutes = partSec(minutesInput);
+  const seconds = partSec(secondsInput);
 
   const fail = (msg, field) => showFieldError(err, msg, field);
 
@@ -108,7 +120,15 @@ $('#signupForm').addEventListener('submit', e => {
   }
 
   const predictedSec = minutes * 60 + seconds;
-  if (predictedSec <= 0) return fail('Predict a time longer than zero — nobody is that quick.', minutesInput);
+  /* Both rejections are "zero", but the people are different. One forgot to type;
+     the other typed 0 and meant it. Telling them both to enter a time is useless
+     to the second one, who believes they just did. */
+  const bothBlank = minutesInput.value.trim() === '' && secondsInput.value.trim() === '';
+  if (predictedSec <= 0) {
+    return fail(bothBlank
+      ? 'Give us a predicted time — even a rough one.'
+      : 'Nought is not a time. What are you chasing?', minutesInput);
+  }
 
   const clash = race().racers.some(r => nameKey(r.name) === nameKey(name));
   if (clash) {
@@ -121,10 +141,17 @@ $('#signupForm').addEventListener('submit', e => {
   e.target.reset();
   nameInput.focus();
 
-  const confirmCard = $('#signupConfirm');
-  confirmCard.classList.remove('hidden');
-  $('#confirmLine').textContent = `${racer.name} — racer #${racer.number}, wave ${wave}.`;
-  $('#confirmDetail').textContent = `Called ${fmtSec(predictedSec)} in race ${currentRace}. Nothing to do now but run it.`;
+  /* Waves regroup on every sign-up until the first gun, so stating one as settled
+     is a promise the app cannot keep. */
+  const settled = race().wavesLocked;
+  const waveWord = settled ? `wave ${wave}` : `wave ${wave} for now`;
+
+  showConfirm(
+    `${racer.name} — racer #${racer.number}, ${waveWord}.`,
+    settled
+      ? `Called ${fmtSec(predictedSec)} in race ${currentRace}. Nothing to do now but run it.`
+      : `Called ${fmtSec(predictedSec)} in race ${currentRace}. Waves settle when the first gun goes.`
+  );
 
   announce(`${racer.name} added to race ${currentRace} as racer ${racer.number}, wave ${wave}, predicted ${fmtSec(predictedSec)}.`);
 });

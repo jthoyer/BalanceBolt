@@ -103,10 +103,29 @@ let outbox = read(STORE_KEY + '-outbox', []);
 let ui = read(UI_KEY, {});
 let syncState = API_URL ? 'idle' : 'local';
 
+/* True once this device has refused to write. Everything still works in memory,
+   but a refresh would lose it, so the pill has to say so rather than sit there
+   looking healthy while sign-ups quietly evaporate. */
+let storageBroken = false;
+
 function save() {
-  localStorage.setItem(STORE_KEY, JSON.stringify(db));
-  localStorage.setItem(STORE_KEY + '-outbox', JSON.stringify(outbox));
-  localStorage.setItem(UI_KEY, JSON.stringify(ui));
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(db));
+    localStorage.setItem(STORE_KEY + '-outbox', JSON.stringify(outbox));
+    localStorage.setItem(UI_KEY, JSON.stringify(ui));
+    if (storageBroken) {
+      storageBroken = false;
+      setSync(syncState);
+      announce('Saving on this device again.');
+    }
+  } catch (err) {
+    // Never rethrow: the caller still has to queue the change and redraw the screen.
+    if (!storageBroken) {
+      storageBroken = true;
+      announce('Cannot save on this device — storage is full or blocked. Do not close this tab.');
+    }
+    setSync(syncState, err.message);
+  }
 }
 
 const uid = prefix => prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -361,7 +380,12 @@ async function post(action, payload) {
     body: JSON.stringify({ action, ...payload })
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error);
+  if (data.error) {
+    // The sheet understood us and said no. Sending it again will just get the same no.
+    const rejected = new Error(data.error);
+    rejected.rejected = true;
+    throw rejected;
+  }
   return data;
 }
 
@@ -380,7 +404,18 @@ async function sync({ pull = false } = {}) {
   try {
     while (outbox.length) {
       const op = outbox[0];
-      await post(op.action, op.payload);
+      try {
+        await post(op.action, op.payload);
+      } catch (err) {
+        /* Offline is worth waiting out. A refusal is not: leaving it at the head of
+           the queue would block every sign-up and finish behind it, for good. */
+        if (!err.rejected) throw err;
+        outbox.shift();
+        save();
+        console.warn('Dropped an unsendable change:', op.action, err.message);
+        setSync('error', `Dropped an unsendable change: ${err.message}`);
+        continue;
+      }
       outbox.shift();
       save();
     }
@@ -411,13 +446,14 @@ function setSync(state, detail) {
   const pending = outbox.length;
 
   let label;
-  if (!API_URL) label = 'Local only';
+  if (storageBroken) label = 'Not saving on this device';
+  else if (!API_URL) label = 'Local only';
   else if (state === 'error') label = pending ? `Offline — ${pending} to send` : 'Sheet unreachable';
   else if (pending) label = `Saving ${pending}…`;
   else label = 'Synced';
 
-  pill.classList.toggle('ok', state === 'ok' && !pending);
-  pill.classList.toggle('error', state === 'error');
+  pill.classList.toggle('ok', state === 'ok' && !pending && !storageBroken);
+  pill.classList.toggle('error', state === 'error' || storageBroken);
   if (pill.textContent !== label) pill.textContent = label;
   pill.title = detail || '';
 
@@ -620,11 +656,29 @@ function keepFocus(rerender) {
   if (next && next !== document.activeElement) next.focus();
 }
 
+/* The bib + name + call cluster. The start list and the timing board both show it,
+   so it lives here — a change to the markup or the hidden "Racer " prefix should
+   never need making twice. */
+function rosterWho(r) {
+  const span = document.createElement('span');
+  span.className = 'roster-who';
+  span.innerHTML = `
+    <span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number"></span></span>
+    <span class="roster-name"></span>
+    <span class="roster-pred"></span>`;
+  span.querySelector('.bib-number').textContent = String(r.number);
+  span.querySelector('.roster-name').textContent = r.name;
+  span.querySelector('.roster-pred').textContent = `called ${fmtSec(r.predictedSec)}`;
+  return span;
+}
+
 /** Show an error against the field that caused it, and say it out loud once. */
 function showFieldError(errorEl, message, field) {
   errorEl.textContent = message;
   errorEl.classList.remove('hidden');
   if (field) {
+    // Keyboard and screen-reader users should land on the box they have to fix.
+    field.focus();
     field.setAttribute('aria-invalid', 'true');
     const described = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
     if (!described.includes(errorEl.id)) {
