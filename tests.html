@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Balance Bolt — core.js tests</title>
+
+<!--
+  Balance Bolt — core.js tests, in a browser
+  =========================================
+  The checks themselves live in tests-core.js. This page is one of two runners:
+
+      open tests.html      this page — a pass/fail list you can read
+      node run-tests.mjs   the same checks, headless, exits non-zero on failure
+
+  Both load core.js and then tests-core.js, so there is one copy of the tests.
+
+  SERVE IT, DO NOT DOUBLE-CLICK IT.
+  Opening this straight off the disk works in Safari but Chrome blocks file://
+  scripts. From this folder:
+
+      python3 -m http.server 8000     then visit  http://localhost:8000/tests.html
+
+  SAFETY — read before editing
+  Two globals are replaced BEFORE core.js loads, and both matter:
+
+    1. localStorage becomes an in-memory fake. This page is served from the same
+       origin as index.html, so without it the tests would read — and save() would
+       OVERWRITE — real race data sitting in this browser.
+    2. fetch is replaced with a stub that throws. core.js has a live API_URL, and
+       queue() -> sync() -> post() would otherwise fire real writes at the Apps
+       Script endpoint every time a test called addRacer() or finishRacer().
+
+  tests-core.js also neutralises queue() as a second layer. Do not remove any of
+  the three. If you ever see a request in the Network tab while this page is open,
+  something has regressed and the tests are talking to the live sheet.
+-->
+
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg:#fff; --fg:#1a1a1a; --muted:#666;
+    --pass:#0a7d33; --fail:#c0202b; --line:#e2e2e2; --card:#fafafa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161616; --fg:#ededed; --muted:#a0a0a0; --pass:#4ade80; --fail:#f87171; --line:#333; --card:#1e1e1e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2rem 1.25rem; background:var(--bg); color:var(--fg);
+         font:15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif; }
+  main { max-width:60rem; margin:0 auto; }
+  h1 { font-size:1.35rem; margin:0 0 .25rem; }
+  .sub { color:var(--muted); margin:0 0 1.5rem; font-size:.9rem; }
+  #summary { font-size:1.1rem; font-weight:600; padding:.85rem 1rem; border-radius:.5rem;
+             border:1px solid var(--line); background:var(--card); margin-bottom:1.5rem; }
+  #summary.ok  { border-color:var(--pass); color:var(--pass); }
+  #summary.bad { border-color:var(--fail); color:var(--fail); }
+  h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.07em; color:var(--muted);
+       margin:1.75rem 0 .5rem; border-bottom:1px solid var(--line); padding-bottom:.35rem; }
+  ol { list-style:none; margin:0; padding:0; }
+  li { padding:.3rem 0 .3rem 3.1rem; position:relative; border-bottom:1px solid var(--line); }
+  li::before { position:absolute; left:0; font-weight:700; font-size:.62rem; top:.55rem; letter-spacing:.04em; }
+  li.pass::before { content:"PASS"; color:var(--pass); }
+  li.fail::before { content:"FAIL"; color:var(--fail); }
+  li.fail { color:var(--fail); }
+  pre { margin:.4rem 0 .2rem; padding:.6rem .75rem; background:var(--card); border:1px solid var(--fail);
+        border-radius:.35rem; font-size:.8rem; overflow-x:auto; white-space:pre-wrap; }
+  code { font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:.88em; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Balance Bolt — <code>core.js</code> tests</h1>
+  <p class="sub">Pure-logic checks. No network, no real storage — see the comment at the top of this file.</p>
+  <div id="summary">Running…</div>
+  <div id="results"></div>
+</main>
+
+<!-- ══ 1. SAFETY STUBS — must run before core.js ══════════════════════════════ -->
+<script>
+(function () {
+  function fakeStorage() {
+    const map = new Map();
+    return {
+      getItem:    k => (map.has(String(k)) ? map.get(String(k)) : null),
+      setItem:    (k, v) => { map.set(String(k), String(v)); },
+      removeItem: k => { map.delete(String(k)); },
+      clear:      () => { map.clear(); },
+      key:        i => [...map.keys()][i] ?? null,
+      get length() { return map.size; }
+    };
+  }
+  try {
+    Object.defineProperty(window, 'localStorage', {
+      value: fakeStorage(), configurable: true, writable: true
+    });
+  } catch (err) {
+    document.getElementById('summary').textContent =
+      'Refusing to run: could not replace localStorage, so the tests would overwrite ' +
+      'real race data. (' + err.message + ')';
+    document.getElementById('summary').className = 'bad';
+    throw err;
+  }
+  window.fetch = function () {
+    throw new Error('Network blocked in tests.html — a test reached fetch()');
+  };
+})();
+</script>
+
+<!-- ══ 2. THE CODE UNDER TEST, THEN THE SHARED SUITE ══════════════════════════ -->
+<script src="core.js"></script>
+<script src="tests-core.js"></script>
+
+<!-- ══ 3. RENDER ══════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  const out = window.__TEST_RESULTS__;
+  const summary = document.getElementById('summary');
+
+  if (!out) {
+    summary.textContent =
+      'No results. core.js or tests-core.js did not load — check the Console. ' +
+      'If you opened this file directly, serve it instead: python3 -m http.server 8000';
+    summary.className = 'bad';
+    document.body.dataset.status = 'error';
+    return;
+  }
+
+  summary.textContent = out.failed === 0
+    ? out.passed + ' checks passed.'
+    : out.failed + ' of ' + out.total + ' checks FAILED.';
+  summary.className = out.failed === 0 ? 'ok' : 'bad';
+
+  const host = document.getElementById('results');
+  let lastGroup = null, list = null;
+  out.results.forEach(function (r) {
+    if (r.group !== lastGroup) {
+      const h = document.createElement('h2');
+      h.textContent = r.group;
+      host.appendChild(h);
+      list = document.createElement('ol');
+      host.appendChild(list);
+      lastGroup = r.group;
+    }
+    const li = document.createElement('li');
+    li.className = r.ok ? 'pass' : 'fail';
+    li.textContent = r.name;
+    if (!r.ok) {
+      const pre = document.createElement('pre');
+      pre.textContent = r.err;
+      li.appendChild(pre);
+    }
+    list.appendChild(li);
+  });
+
+  // Machine-readable, so a headless runner can read the outcome without scraping.
+  document.title = (out.failed === 0 ? 'PASS' : 'FAIL') + ' — Balance Bolt core tests';
+  document.body.dataset.status = out.failed === 0 ? 'pass' : 'fail';
+  (out.failed ? console.error : console.log)(
+    'Balance Bolt core tests: ' + out.passed + ' passed, ' + out.failed + ' failed'
+  );
+})();
+</script>
+</body>
+</html>
