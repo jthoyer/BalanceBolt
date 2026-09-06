@@ -29,13 +29,15 @@
    eq() deep-compares via JSON. Throwing anything fails the test with the message.
 */
 
-(function () {
+globalThis.__TESTS_DONE__ = (async function () {
   'use strict';
 
   /* Stop mutations queueing outbound writes to the live Apps Script endpoint.
      core.js declares queue() as a function declaration, so this replaces it.
-     The runners also block the network outright — this is the second layer. */
-  queue = function () {};
+     The runners also block the network outright — this is the second layer.
+     One group at the end deliberately restores real queueing to test sync(). */
+  const noopQueue = function () {};
+  queue = noopQueue;
 
   /* ── Tiny harness ──────────────────────────────────────────────────────── */
 
@@ -46,6 +48,18 @@
   function test(name, fn) {
     try {
       fn();
+      results.push({ group: currentGroup, name, ok: true });
+    } catch (err) {
+      results.push({ group: currentGroup, name, ok: false, err: (err && err.message) || String(err) });
+    }
+  }
+
+  /* Same as test(), but awaits. The sync path is async, and it is exactly the part
+     no synchronous test can reach — which is why a real race condition lived there
+     under a green suite until 2026-09-06. Call it with `await atest(...)`. */
+  async function atest(name, fn) {
+    try {
+      await fn();
       results.push({ group: currentGroup, name, ok: true });
     } catch (err) {
       results.push({ group: currentGroup, name, ok: false, err: (err && err.message) || String(err) });
@@ -628,6 +642,106 @@
     resetRace(); // acts on currentRace, which is 1
     eq(race(1).racers.length, 0);
     eq(race(2).racers.length, 1, 'race 2 must survive a reset of race 1');
+  });
+
+  /* ═══ Sync — the async path, where a green suite hid a real bug ═════════ */
+
+  group('sync() — pulling without losing local work');
+
+  /* These restore real queueing and stub fetch, so they exercise the actual sync
+     path rather than the no-op stub every other test runs under. Each one puts
+     both back afterwards, so nothing leaks into a later run.
+
+     `fetch` here never reaches the network: it returns whatever snapshot the test
+     hands it. The runners block the real fetch as well, so this is the second layer. */
+  async function withStubbedSync(fn) {
+    const realFetch = globalThis.fetch;
+    queue = function (action, payload) { outbox.push({ action, payload }); };
+    try { await fn(); }
+    finally {
+      globalThis.fetch = realFetch;
+      queue = noopQueue;
+      outbox.length = 0;
+    }
+  }
+
+  /** A fetch stub returning `body` as the response, resolving when `gate` does. */
+  const fetchReturning = (body, gate) => () => (gate || Promise.resolve()).then(() => ({
+    text: async () => JSON.stringify(body),
+    json: async () => body
+  }));
+
+  await atest('a finish recorded while the pull is in flight is not wiped by the snapshot', async () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600, { wave: 1 })], waveStarts: { 1: T }, wavesLocked: true } });
+
+    // The sheet still thinks Ana is running — this snapshot predates her finish.
+    const stale = { races: { 1: {
+      racers: [{ id: 'a', number: 1, name: 'Ana', predictedSec: 600, wave: 1, finishAt: null }],
+      waveStarts: { 1: T }, wavesLocked: true, prizes: []
+    } } };
+
+    await withStubbedSync(async () => {
+      let openGate;
+      const gate = new Promise(res => { openGate = res; });
+      globalThis.fetch = fetchReturning(stale, gate);
+
+      const inFlight = sync({ pull: true });          // fetch is now hanging on the gate
+      finishRacer('a', T + 601000);                   // the timer presses Finish mid-pull
+      openGate();                                     // the stale snapshot comes back
+      await inFlight;
+
+      eq(race(1).racers[0].finishAt, T + 601000,
+         "Ana's finish must survive a snapshot that was taken before it happened");
+      ok(outbox.length > 0, 'and the finish must still be queued to send');
+    });
+  });
+
+  await atest('a finish wiped this way would let a second press overwrite the real time', async () => {
+    // The consequence of the bug above, stated as its own check: if the finish is
+    // lost, finishRacer's "already finished" guard passes and a later time wins.
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600, { wave: 1 })], waveStarts: { 1: T }, wavesLocked: true } });
+    finishRacer('a', T + 601000);
+    const second = finishRacer('a', T + 640000);
+    eq(second.ok, false, 'the guard only holds while the first finish is still on the racer');
+    eq(race(1).racers[0].finishAt, T + 601000, 'and the real time is the one kept');
+  });
+
+  await atest('an unchanged snapshot is not re-applied, so the board is not rebuilt every poll', async () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600, { wave: 1 })], waveStarts: { 1: T }, wavesLocked: true } });
+    const snapshot = { races: { 1: {
+      racers: [{ id: 'a', number: 1, name: 'Ana', predictedSec: 600, wave: 1, finishAt: null }],
+      waveStarts: { 1: T }, wavesLocked: true, prizes: []
+    } } };
+
+    await withStubbedSync(async () => {
+      globalThis.fetch = fetchReturning(snapshot);
+      let renders = 0;
+      const realRender = renderPage;
+      renderPage = () => { renders += 1; };
+      try {
+        await sync({ pull: true });
+        eq(renders, 1, 'the first snapshot is new, so it draws once');
+        await sync({ pull: true });
+        eq(renders, 1, 'the second is identical, so it must not draw again');
+      } finally { renderPage = realRender; }
+    });
+  });
+
+  await atest('a genuinely changed snapshot is still applied', async () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600, { wave: 1 })], waveStarts: { 1: T }, wavesLocked: true } });
+
+    await withStubbedSync(async () => {
+      globalThis.fetch = fetchReturning({ races: { 1: {
+        racers: [
+          { id: 'a', number: 1, name: 'Ana', predictedSec: 600, wave: 1, finishAt: null },
+          { id: 'b', number: 2, name: 'Bea', predictedSec: 700, wave: 1, finishAt: null }
+        ],
+        waveStarts: { 1: T }, wavesLocked: true, prizes: []
+      } } });
+      await sync({ pull: true });
+      eq(race(1).racers.length, 2, 'a new sign-up from another device must arrive');
+      eq(race(1).racers[1].name, 'Bea');
+    });
   });
 
   /* ── Hand the results to whichever runner loaded this file ─────────────── */

@@ -398,6 +398,9 @@ function queue(action, payload) {
 }
 
 let syncing = false;
+/* The last snapshot we actually applied, as raw text. Two jobs: skip a redraw when
+   the sheet hasn't changed, and give the guard in the pull below something to compare. */
+let lastPulledRaw = null;
 async function sync({ pull = false } = {}) {
   if (!API_URL || syncing) return;
   syncing = true;
@@ -421,12 +424,28 @@ async function sync({ pull = false } = {}) {
     }
     if (pull) {
       const res = await fetch(API_URL);
-      const data = await res.json();
+      const raw = await res.text();
+      const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error);
-      // The outbox is empty, so the sheet now holds everything this device did.
-      db = cleanDb(data);
-      save();
-      renderPage();
+      /* Two reasons to drop this snapshot rather than apply it.
+
+         The outbox emptied above, but `await fetch` is a second gap, and a finish
+         pressed during it queues a change whose own sync() call does nothing —
+         `syncing` is still true. This snapshot was taken before that finish existed,
+         so applying it would wipe a time that is sitting safely in the outbox waiting
+         to send. The timer then sees the racer as still running, presses Finish again,
+         and the second, later time overwrites the real one on the sheet. That is a
+         corrupted result in an app whose whole job is getting the time right.
+
+         The second reason is cheaper but constant: renderPage() throws the board away
+         and rebuilds it, and at a 4 second poll that is a full rebuild every 4 seconds
+         for a whole race, on a phone, usually to draw exactly what was already there. */
+      if (!outbox.length && raw !== lastPulledRaw) {
+        lastPulledRaw = raw;
+        db = cleanDb(data);
+        save();
+        renderPage();
+      }
     }
     setSync('ok');
   } catch (err) {

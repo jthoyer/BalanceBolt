@@ -113,7 +113,11 @@
 
 <!-- ══ 3. RENDER ══════════════════════════════════════════════════════════════ -->
 <script>
-(function () {
+(async function () {
+  // The suite is async — it tests sync(), which is where the interesting bugs are.
+  // Without this await the results are read before the async group has finished.
+  try { await window.__TESTS_DONE__; } catch (err) { console.error(err); }
+
   const out = window.__TEST_RESULTS__;
   const summary = document.getElementById('summary');
 

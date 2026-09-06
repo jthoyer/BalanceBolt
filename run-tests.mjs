@@ -98,6 +98,9 @@ try {
 
 try {
   runInContext(read('tests-core.js'), context, { filename: 'tests-core.js' });
+  // The suite is async — it tests sync(), which is where the interesting bugs are.
+  // Without this await the results are read before the async group has finished.
+  await sandbox.__TESTS_DONE__;
 } catch (err) {
   console.error('\n  tests-core.js failed to load:\n  ' + err.stack + '\n');
   process.exit(1);
@@ -107,7 +110,7 @@ try {
 
 const out = sandbox.__TEST_RESULTS__;
 if (!out) {
-  console.error('\n  tests-core.js ran but set no results. Did the IIFE throw?\n');
+  console.error('\n  tests-core.js ran but set no results. Did the suite throw?\n');
   process.exit(1);
 }
 
