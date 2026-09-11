@@ -85,6 +85,7 @@ body.has-thumb-bar { padding-bottom: calc(var(--navbar-height) + 16px) }
   font: 700 14px "DM Sans", sans-serif; cursor: pointer;
 }
 .text-button:hover { color: var(--ink) }
+a.text-button { display: inline-flex; align-items: center; text-decoration: none }
 
 /* ── Race 1–5 picker ─────────────────────────────────────── */
 /* Native radios under the paint, so arrow keys and screen readers work for free. */
@@ -247,6 +248,8 @@ a.primary-button, a.secondary-button, a.save-button {
 .confirm-card { margin: 18px 0; padding: 20px 18px; border-radius: 9px; background: var(--green); color: #fff }
 .confirm-line { margin: 0; font: 700 22px Outfit, sans-serif; letter-spacing: -.4px }
 .confirm-detail { margin: 6px 0 0; color: #e7f4ec; font-size: 14px }
+.confirm-detail a { color: #fff; font-weight: 700; text-decoration: underline }
+.confirm-detail a:hover { text-decoration: none }
 
 /* ── Start list ──────────────────────────────────────────── */
 .wave-grid { display: grid; gap: 12px }
