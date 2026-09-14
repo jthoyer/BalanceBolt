@@ -106,6 +106,46 @@ try {
   process.exit(1);
 }
 
+/* ── Page wiring ────────────────────────────────────────────────────────── */
+
+/* input.js and results.js are not loaded above: they run against a real page, and
+   the fake document here has no elements for them to find. That left a whole class
+   of defect uncovered — an element deleted from the HTML while a page script still
+   reaches for it at the top level. `$('#gone').addEventListener(...)` throws before
+   boot() is ever called, so the page renders nothing at all and the browser shows
+   only the static markup: no start list, no sync pill, no competitors. That shipped
+   once (input.js reaching for #racePicker after it was removed from index.html) with
+   all 78 checks below passing, so it is checked here rather than hoped about.
+
+   A static check, not an executed one: pair each page script with its page and make
+   sure every id it dereferences actually exists in that HTML. No DOM, no dependency. */
+const PAGES = [['input.js', 'index.html'], ['results.js', 'boltresults.html'], ['core.js', null]];
+const CORE_PAGES = ['index.html', 'boltresults.html'];
+
+const idsUsedIn = src => [...new Set(
+  [...src.matchAll(/\$\(\s*'#([A-Za-z0-9_-]+)'\s*\)/g)].map(m => m[1])
+)];
+const hasId = (html, id) => new RegExp(`id=["']${id}["']`).test(html);
+
+const pageChecks = [];
+for (const [script, page] of PAGES) {
+  const src = read(script);
+  // core.js serves both pages, so an id it uses need only exist on one of them.
+  const pages = page ? [page] : CORE_PAGES;
+  const htmls = pages.map(read);
+  for (const id of idsUsedIn(src)) {
+    const ok = htmls.some(html => hasId(html, id));
+    pageChecks.push({
+      group: 'page wiring',
+      name: `${script} reaches for #${id}, which exists in ${pages.join(' or ')}`,
+      ok,
+      err: ok ? '' : `#${id} is used in ${script} but no element declares id="${id}" in ${pages.join(' or ')}.\n`
+        + `If the element was deliberately removed, remove or null-guard the reference too —\n`
+        + `an unguarded $('#${id}') at the top level of a page script stops the whole page booting.`
+    });
+  }
+}
+
 /* ── Report ─────────────────────────────────────────────────────────────── */
 
 const out = sandbox.__TEST_RESULTS__;
@@ -113,6 +153,12 @@ if (!out) {
   console.error('\n  tests-core.js ran but set no results. Did the suite throw?\n');
   process.exit(1);
 }
+
+const wiringFailed = pageChecks.filter(c => !c.ok).length;
+out.results = [...pageChecks, ...out.results];
+out.total += pageChecks.length;
+out.passed += pageChecks.length - wiringFailed;
+out.failed += wiringFailed;
 
 const dim = s => `\x1b[2m${s}\x1b[0m`;
 const red = s => `\x1b[31m${s}\x1b[0m`;
