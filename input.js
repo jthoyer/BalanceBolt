@@ -70,7 +70,7 @@ function renderStartList() {
       const li = document.createElement('li');
       li.className = 'roster-entry';
       li.innerHTML = '<button type="button" class="quiet-button">Remove</button>';
-      li.prepend(rosterWho(r));
+      li.prepend(rosterWho(r, { showPred: false }));
 
       const btn = li.querySelector('.quiet-button');
       btn.dataset.focusKey = `remove:${r.id}`;

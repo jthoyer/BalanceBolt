@@ -677,8 +677,9 @@ function keepFocus(rerender) {
 
 /* The bib + name + call cluster. The start list and the timing board both show it,
    so it lives here — a change to the markup or the hidden "Racer " prefix should
-   never need making twice. */
-function rosterWho(r) {
+   never need making twice. The start list already states each wave's call spectrum
+   in its header, so it skips the per-racer call time to avoid repeating it. */
+function rosterWho(r, { showPred = true } = {}) {
   const span = document.createElement('span');
   span.className = 'roster-who';
   span.innerHTML = `
@@ -687,7 +688,11 @@ function rosterWho(r) {
     <span class="roster-pred"></span>`;
   span.querySelector('.bib-number').textContent = String(r.number);
   span.querySelector('.roster-name').textContent = r.name;
-  span.querySelector('.roster-pred').textContent = `called ${fmtSec(r.predictedSec)}`;
+  if (showPred) {
+    span.querySelector('.roster-pred').textContent = `called ${fmtSec(r.predictedSec)}`;
+  } else {
+    span.querySelector('.roster-pred').remove();
+  }
   return span;
 }
 
