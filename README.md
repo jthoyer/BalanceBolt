@@ -23,14 +23,18 @@ not a picture of one.
 Open whichever one the job needs: the sign-up table has no route into race control, and
 the timing screen has no route back to sign-up. `admin.html` is the exception — a
 one-way jumping-off point that links to both, for whoever is running the day and needs
-to move between them. Both `index.html` and `boltresults.html` carry a **Race 1–5**
-picker; the selected race is stored on the device and mirrored into the URL as
-`?race=2`, so a screen can be parked on one race and left alone.
+to move between them. `boltresults.html` carries a **Race 1–5** picker; the selected
+race is stored on the device and mirrored into the URL as `?race=2`, so a screen can be
+parked on one race and left alone. `index.html` has no picker of its own — whoever is
+signing people up gets whichever race is already in the URL or stored on that device, so
+switching races is an admin action taken on `boltresults.html`, not something the phone
+being passed around can do on its own.
 
 ## How a race runs
 
-1. **Sign up** — on `index.html`, pick the race, enter a name and a
-   predicted time. Racers get the next number (1, 2, 3…) *within that race* and a wave.
+1. **Sign up** — on `index.html`, enter a name and a predicted time for
+   whichever race is already showing. Racers get the next number (1, 2, 3…) *within
+   that race* and a wave.
 2. **Waves** — everyone whose predicted time is within **five minutes** of each other
    goes in the same wave, so a wave leaves together and comes home together. Wave 1 is
    the quickest calls. Four waves is a hard cap: if the field spreads across more than
