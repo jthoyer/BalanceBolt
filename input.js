@@ -16,9 +16,10 @@ function showConfirm(line, detail) {
 
 const hideConfirm = () => $('#signupConfirm').classList.add('hidden');
 
-/* A second listener on the picker, alongside the one core.js wires for the race
-   itself — this is a page concern, and core.js also serves the results page. */
-$('#racePicker').addEventListener('change', hideConfirm);
+/* There is no race picker on the sign-up page — switching races is done on
+   boltresults.html, and index.html just shows whichever race is in the URL or stored
+   on the device. So nothing here can change the race out from under the confirmation
+   card; it is hidden on Remove instead (below), and by the reset on the next sign-up. */
 
 function render() {
   keepFocus(() => {
