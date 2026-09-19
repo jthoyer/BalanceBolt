@@ -446,8 +446,9 @@ spelling.
   time — even a rough one."; somebody who typed 0 and 0 gets "Nought is not a time.
   What are you chasing?" Telling the second person to enter a time they believe they
   just entered helps nobody.
-- Prize names carry the humour, interface labels do not: "Off like a rabbit", "Took
-  the scenic route", "Bang on". Buttons stay literal: "Stop their clock".
+- Automatic prize names stay plain and literal: "Closest to the call", "Furthest
+  from the call". Adhoc prizes are where the organiser's humour lives. Buttons stay
+  literal too: "Stop their clock".
 - Confirmations are plain, and hedge only where the app genuinely does not know yet:
   "Ada — racer #3, wave 3 for now." before the first gun, "wave 3" after it.
 - Sentence case for headings and buttons. Uppercase only for eyebrows and table

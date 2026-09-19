@@ -253,6 +253,8 @@ function podiumCard(kind, eyebrow, row) {
 
 /* ── Prizes ────────────────────────────────────────────────────────────── */
 
+const CLOSEST_TITLES = ['Closest to the call', '2nd closest to the call', '3rd closest to the call'];
+
 /** The fun stuff: automatic awards plus anything the organiser invents on the day. */
 function autoPrizes(v) {
   const rows = ranked(v);
@@ -260,34 +262,15 @@ function autoPrizes(v) {
   const prizes = [];
   const who = row => `#${row.racer.number} ${row.racer.name}`;
 
-  const bangOn = rows.filter(r => r.absDelta <= BANG_ON_MS);
-  if (bangOn.length) {
-    prizes.push({
-      title: 'Bang on',
-      winner: bangOn.map(who).join(', '),
-      detail: `Inside ${BANG_ON_MS / 1000} seconds of their own call`
-    });
+  rows.slice(0, 3).forEach((row, i) => {
+    prizes.push({ title: CLOSEST_TITLES[i], winner: who(row), detail: fmtDelta(row.delta) });
+  });
+
+  if (rows.length > 3) {
+    const furthest = rows[rows.length - 1];
+    prizes.push({ title: 'Furthest from the call', winner: who(furthest), detail: fmtDelta(furthest.delta) });
   }
 
-  const fastest = [...rows].sort((a, b) => a.elapsed - b.elapsed)[0];
-  prizes.push({ title: 'Quickest legs', winner: who(fastest), detail: `${fmtClock(fastest.elapsed)} on the day` });
-
-  const rabbit = [...rows].sort((a, b) => a.delta - b.delta)[0];
-  if (rabbit.delta < 0) {
-    prizes.push({ title: 'Off like a rabbit', winner: who(rabbit), detail: `${fmtDelta(rabbit.delta)} — sandbagged the prediction` });
-  }
-
-  const scenic = [...rows].sort((a, b) => b.delta - a.delta)[0];
-  if (scenic.delta > 0) {
-    prizes.push({ title: 'Took the scenic route', winner: who(scenic), detail: `${fmtDelta(scenic.delta)} — worth every second` });
-  }
-
-  if (v.waves.length > 1) {
-    v.waves.forEach(wave => {
-      const best = rows.find(r => v.map.get(r.racer.id) === wave);
-      if (best) prizes.push({ title: `Wave ${wave} winner`, winner: who(best), detail: fmtDelta(best.delta) });
-    });
-  }
   return prizes;
 }
 
