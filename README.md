@@ -82,13 +82,10 @@ Per race, awarded automatically as results come in:
 
 | Prize | Who gets it |
 |---|---|
-| Closest to the call | Smallest gap between actual and predicted — **first place** |
+| Closest to the call | Smallest gap between actual and predicted — **1st place** |
+| 2nd closest to the call | Second-smallest gap |
+| 3rd closest to the call | Third-smallest gap |
 | Furthest from the call | Largest gap — **last place** |
-| Bang on | Anyone within five seconds of their own call |
-| Quickest legs | Fastest actual time on the day |
-| Off like a rabbit | Beat their prediction by the biggest margin |
-| Took the scenic route | Went over their prediction by the biggest margin |
-| Wave winner | Closest to the call in each wave |
 
 Plus **adhoc prizes** — type any prize name on the Results panel, pick a racer, award
 it. Best hat, best excuse, whatever the day throws up.
