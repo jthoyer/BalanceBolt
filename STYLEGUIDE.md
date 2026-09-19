@@ -171,7 +171,7 @@ Rules:
 - One shadow in the whole system: `0 8px 24px rgba(18,31,55,.12)` on the sticky race
   clock, and only while it is stuck (phones). Everything else is flat.
 - Tap targets: `--tap` 48px for primary controls, `--tap-min` 44px is the floor and
-  nothing goes below it — including low-emphasis buttons like Remove and Undo.
+  nothing goes below it — including low-emphasis buttons like Undo and Take it back.
 
 ---
 
@@ -287,10 +287,10 @@ warning, not a form that silently does nothing.
 Green block shown after a successful sign-up with the race number, wave and predicted
 time. Visual confirmation only; the same text also goes to the announcer.
 
-Shown and hidden through `showConfirm()` / `hideConfirm()` in `input.js`, never from
-`render()`: the sheet poll re-renders every `POLL_MS`, so a render-driven rule would
-snatch the card away mid-read. It goes when the answer stops applying — switching
-race, or removing the racer it names.
+Shown through `showConfirm()` in `input.js`, never from `render()`: the sheet poll
+re-renders every `POLL_MS`, so a render-driven rule would snatch the card away
+mid-read. Nothing on the sign-up page can change the race or take the racer off the
+list, so the card stands until the next sign-up overwrites it.
 
 Before the first gun it says "wave 2 **for now**", because `buildWaveMap` regroups on
 every sign-up until `wavesLocked`. Stating a fluid wave as settled is a promise the
@@ -316,7 +316,7 @@ ranking implied between the two jobs.
 | `.finish-button` | Stop one racer's clock | `--ink` fill, 48px |
 | `.secondary-button` | Admin actions | `#eef0f4` fill, `--line-strong` border |
 | `.secondary-button.danger` | Destructive | `--red-bg` fill, `--red` border and label |
-| `.quiet-button` | Remove / Undo / Take it back | White, `--line-strong` border, 44px |
+| `.quiet-button` | Undo / Take it back | White, `--line-strong` border, 44px |
 | `.text-button` | Header-only, low weight | Transparent, `--muted` |
 
 Full-width on phones, `width: auto` from 700px up.
@@ -396,7 +396,7 @@ through `#announcer`.
 time someone presses Finish. Buttons that survive a render under a different name
 carry `data-focus-key`, and `keepFocus()` moves focus to the same key afterwards — so
 Finish → Undo → Finish keeps you in the same row. Where an element genuinely
-disappears (Start wave, Remove, Take it back) the handler decides explicitly where
+disappears (Start wave, Take it back) the handler decides explicitly where
 focus goes next. Never let focus fall back to `<body>`.
 
 **Errors.** Each form error is a `role="alert"` paragraph. On failure the offending
@@ -422,7 +422,7 @@ controls, 16px form inputs, 320px reflow with no horizontal scroll.
 
 **Text alternatives.** The logo's `alt` is the club name. Decorative glyphs (`+`, `★`,
 `→`, `↗`) are `aria-hidden="true"` so they are not read as words. Icon-free buttons
-whose visible text is ambiguous in isolation ("Remove", "Undo", "Finish") get an
+whose visible text is ambiguous in isolation ("Undo", "Finish", "Take it back") get an
 `aria-label` naming the racer.
 
 **ARIA is a last resort.** Radios for the race picker, `<fieldset>`/`<legend>` for

@@ -4,22 +4,20 @@
 
 const signupFields = () => [$('#nameInput'), $('#minutesInput'), $('#secondsInput')];
 
-/* "YOU'RE IN" is about one sign-up that just happened. Switch race or remove the
-   racer and it is answering a question nobody is asking any more.
-   Hiding it belongs here and not in render(): the sheet poll re-renders every few
-   seconds, which would snatch the card away mid-read. */
+/* "YOU'RE IN" is about one sign-up that just happened. Showing it belongs here and
+   not in render(): the sheet poll re-renders every few seconds, which would snatch
+   the card away mid-read. */
 function showConfirm(line, detail) {
   $('#confirmLine').textContent = line;
   $('#confirmDetail').textContent = detail;
   $('#signupConfirm').classList.remove('hidden');
 }
 
-const hideConfirm = () => $('#signupConfirm').classList.add('hidden');
-
 /* There is no race picker on the sign-up page — switching races is done on
    boltresults.html, and index.html just shows whichever race is in the URL or stored
-   on the device. So nothing here can change the race out from under the confirmation
-   card; it is hidden on Remove instead (below), and by the reset on the next sign-up. */
+   on the device. And the start list below is read-only. So nothing on this page can
+   pull the racer or the race out from under the confirmation card: it stands until
+   the next sign-up overwrites it. */
 
 function render() {
   keepFocus(() => {
@@ -67,25 +65,13 @@ function renderStartList() {
       <ul></ul>`;
 
     const ul = card.querySelector('ul');
+    // Read-only: the roster shows who is in and in which wave, nothing more. Taking a
+    // racer off the list is an organiser's job, not something a shared sign-up sheet
+    // on a start line should offer to whoever is holding the phone.
     members.forEach(r => {
       const li = document.createElement('li');
       li.className = 'roster-entry';
-      li.innerHTML = '<button type="button" class="quiet-button">Remove</button>';
-      li.prepend(rosterWho(r, { showPred: false }));
-
-      const btn = li.querySelector('.quiet-button');
-      btn.dataset.focusKey = `remove:${r.id}`;
-      btn.setAttribute('aria-label', `Remove ${r.name} from race ${currentRace}`);
-      btn.addEventListener('click', () => {
-        if (!confirm(`Remove ${r.name} from race ${currentRace}?`)) return;
-        // Their Remove button is about to vanish, so decide where focus lands first.
-        const slot = $$('#startList .quiet-button').indexOf(btn);
-        removeRacer(r.id);
-        hideConfirm();
-        announce(`${r.name} removed from race ${currentRace}.`);
-        const left = $$('#startList .quiet-button');
-        (left[slot] || left[left.length - 1] || $('#startListHeading')).focus();
-      });
+      li.append(rosterWho(r, { showPred: false }));
       ul.append(li);
     });
     container.append(card);
