@@ -115,6 +115,8 @@ a.text-button { display: inline-flex; align-items: center; text-decoration: none
 .race-pick-option input:focus-visible + label {
   outline: 3px solid var(--focus); outline-offset: 3px;
 }
+.race-pick-share { margin-top: 8px }
+.race-pick-share .text-button { padding: 0 }
 
 /* ── Thumb bar (fixed to the bottom on phones) ───────────── */
 .thumb-bar {
