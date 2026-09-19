@@ -366,11 +366,9 @@
                 <ul>
                   <li class="roster-entry">
                     <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">4</span></span><span class="roster-name">Jo</span></span>
-                    <button type="button" class="quiet-button">Remove</button>
                   </li>
                   <li class="roster-entry">
                     <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Priya</span></span>
-                    <button type="button" class="quiet-button">Remove</button>
                   </li>
                 </ul>
               </section>
@@ -529,7 +527,7 @@
               <tr><td><code>.finish-button</code></td><td>Stop one racer's clock</td><td><code>--ink</code> fill, 48px</td></tr>
               <tr><td><code>.secondary-button</code></td><td>Admin actions</td><td><code>#eef0f4</code> fill, <code>--line-strong</code> border</td></tr>
               <tr><td><code>.secondary-button.danger</code></td><td>Destructive</td><td><code>--red-bg</code> fill, <code>--red</code> border and label</td></tr>
-              <tr><td><code>.quiet-button</code></td><td>Remove / Undo / Take it back</td><td>White, <code>--line-strong</code> border, 44px</td></tr>
+              <tr><td><code>.quiet-button</code></td><td>Undo / Take it back</td><td>White, <code>--line-strong</code> border, 44px</td></tr>
               <tr><td><code>.text-button</code></td><td>Header-only, low weight</td><td>Transparent, <code>--muted</code></td></tr>
             </tbody>
           </table></div>
@@ -613,7 +611,7 @@
           <li><strong>Headings.</strong> One <code>h1</code> per rendered view. Because panels are toggled with <code>display: none</code>, only the active view's headings are in the accessibility tree, so each <code>role="tabpanel"</code> starts its own h1 → h2 → h3 ladder.</li>
           <li><strong>Keyboard.</strong> Every action is reachable and operable without a pointer. Tabs use the ARIA authoring practice: roving <code>tabindex</code>, arrow keys / Home / End, and focus moves into the panel on activation. <code>:focus-visible</code> gives a 3px <code>--focus</code> outline with 3px offset, switched to white on ink and green surfaces. A skip link is the first element on every page.</li>
           <li><strong>Targets and reflow.</strong> 44px minimum on everything interactive, 48px on primary controls, 16px form inputs, 320px reflow with no horizontal scroll.</li>
-          <li><strong>Text alternatives.</strong> The logo's <code>alt</code> is the club name. Decorative glyphs (<code>+</code>, <code>★</code>, <code>→</code>, <code>↗</code>) are <code>aria-hidden="true"</code>. Icon-free buttons whose visible text is ambiguous in isolation ("Remove", "Undo", "Finish") get an <code>aria-label</code> naming the racer.</li>
+          <li><strong>Text alternatives.</strong> The logo's <code>alt</code> is the club name. Decorative glyphs (<code>+</code>, <code>★</code>, <code>→</code>, <code>↗</code>) are <code>aria-hidden="true"</code>. Icon-free buttons whose visible text is ambiguous in isolation ("Undo", "Finish", "Take it back") get an <code>aria-label</code> naming the racer.</li>
           <li><strong>ARIA is a last resort.</strong> Radios for the race picker, <code>&lt;fieldset&gt;</code>/<code>&lt;legend&gt;</code> for groups, <code>&lt;th scope&gt;</code> for tables, real <code>&lt;button&gt;</code>s and <code>&lt;a&gt;</code>s. <code>role="tab"</code> and <code>role="status"</code> are used because HTML has no equivalent; nothing else is.</li>
         </ul>
       </section>
