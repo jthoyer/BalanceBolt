@@ -167,6 +167,8 @@
               <tr><td><code>--line</code> on <code>#ffffff</code></td><td class="num sg-ratio sg-decorative">1.34</td><td>Decorative card and panel edges. Carries no state and no affordance; the content inside identifies the card.</td></tr>
               <tr><td><code>#eff1f4</code> row dividers on <code>#ffffff</code></td><td class="num sg-ratio sg-decorative">1.13</td><td>Decorative separators between list rows.</td></tr>
               <tr><td><code>#e0c07a</code> on <code>#ffffff</code> (adhoc prize tint)</td><td class="num sg-ratio sg-decorative">1.75</td><td>Decorative tint. The card is identified by its heading, not its border.</td></tr>
+              <tr><td><code>#eef0f4</code> (Cancel fill) on <code>--canvas</code> (call editor)</td><td class="num sg-ratio sg-decorative">1.07</td><td>A <code>.secondary-button</code> on the editor's own <code>--canvas</code> surface. Identified by its <code>--line-strong</code> border — 3.54 against that surface, 3.30 against its own fill.</td></tr>
+              <tr><td><code>--navy-bg</code> hover fill on <code>#ffffff</code></td><td class="num sg-ratio sg-decorative">1.12</td><td><code>.quiet-button.neutral:hover</code>. A hover tint, not a state anyone has to see; the button is identified by its <code>--ink</code> border at 15.19 and its <code>--ink</code> label at 13.55.</td></tr>
               <tr><td><code>--yellow</code> fill against <code>--canvas</code></td><td class="num sg-ratio sg-decorative">1.52</td><td>The primary button is identified by its <code>--ink</code> label at 9.41:1. WCAG 1.4.11 does not require a boundary when the component is identifiable another way.</td></tr>
               <tr><td><code>#ffffff</code> medal chip on <code>--gold</code> / <code>--silver</code></td><td class="num sg-ratio sg-decorative">2.18 / 1.41</td><td>Decorative disc. The place number inside it is the component, at 5.42:1 and 5.40:1.</td></tr>
               <tr><td><code>#ffffff</code> bib pill on <code>--gold-bg</code> / <code>--navy-bg</code> rows</td><td class="num sg-ratio sg-decorative">1.13 / 1.12</td><td>Decorative pill, same case as the <code>--line</code> card edge. The bib number reads at 15.19:1. White rather than <code>--navy-bg</code> only because <code>--navy-bg</code> on a tinted row measures 1.01 and the pill shape vanishes entirely.</td></tr>
@@ -271,7 +273,7 @@
         </div>
 
         <div class="sg-demo">
-          <div class="sg-demo-label">Tap targets — <code>--tap-min</code> 44px is the floor, <code>--tap</code> 48px for primary controls</div>
+          <div class="sg-demo-label">Tap targets — <code>--tap-min</code> 44px is the floor and nothing goes below it, including low-emphasis buttons like Edit call, Undo and Take it back. <code>--tap</code> 48px for primary controls</div>
           <div class="sg-demo-body sg-canvas sg-demo-row" style="align-items:flex-end">
             <div style="width:44px;height:44px;border-radius:9px;border:2px solid var(--line-strong);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--ink);font:700 11px 'DM Sans'">44</div>
             <div style="width:48px;height:48px;border-radius:9px;background:var(--ink);display:flex;align-items:center;justify-content:center;color:#fff;font:700 11px 'DM Sans'">48</div>
@@ -402,7 +404,7 @@
 
         <div class="sg-sub">
           <h3>Wave bar &amp; timing row</h3>
-          <p class="sg-sub-note"><code>.wave-bar</code> — race-control header for one wave; background and words both encode state. <code>.timing-row</code> — bib, name, call, then a live clock and Finish, or the elapsed time, delta and Undo.</p>
+          <p class="sg-sub-note"><code>.wave-bar</code> — race-control header for one wave; background and words both encode state. <code>.timing-row</code> — bib, name, call, an <strong>Edit call</strong> button, then a live clock and Finish, or the elapsed time, delta and Undo. Edit call carries <code>margin-right: auto</code> so it stays against the name while the clock and Finish hold the right edge: Finish is the one control that must never be pressed by accident, so nothing else is parked beside it.</p>
 
           <div class="sg-demo">
             <div class="sg-demo-label"><code>.pending</code> — not started, Finish is disabled</div>
@@ -416,6 +418,7 @@
                 <div class="wave-body">
                   <div class="timing-row">
                     <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">6</span></span><span class="roster-name">Marco</span><span class="roster-pred">called 18:20</span></span>
+                    <button type="button" class="quiet-button neutral" aria-expanded="false" aria-label="Edit the predicted time for Marco, currently 18:20">Edit call</button>
                     <span class="timing-result"><button type="button" class="finish-button" disabled aria-label="Finish Marco — wave not started yet">Finish</button></span>
                   </div>
                 </div>
@@ -434,10 +437,12 @@
                 <div class="wave-body">
                   <div class="timing-row">
                     <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">4</span></span><span class="roster-name">Jo</span><span class="roster-pred">called 11:30</span></span>
+                    <button type="button" class="quiet-button neutral" aria-expanded="false" aria-label="Edit the predicted time for Jo, currently 11:30">Edit call</button>
                     <span class="timing-result"><span class="timing-elapsed">11:28</span><span class="timing-delta delta-good">0:02 under</span><button type="button" class="quiet-button" aria-label="Undo the finish time for Jo">Undo</button></span>
                   </div>
                   <div class="timing-row">
                     <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Priya</span><span class="roster-pred">called 11:40</span></span>
+                    <button type="button" class="quiet-button neutral" aria-expanded="false" aria-label="Edit the predicted time for Priya, currently 11:40">Edit call</button>
                     <span class="timing-result"><span class="timing-elapsed">12:41</span><button type="button" class="finish-button" aria-label="Stop the clock for Priya">Finish</button></span>
                   </div>
                 </div>
@@ -456,10 +461,84 @@
                 <div class="wave-body">
                   <div class="timing-row">
                     <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">3</span></span><span class="roster-name">Sam</span><span class="roster-pred">called 15:00</span></span>
+                    <button type="button" class="quiet-button neutral" aria-expanded="false" aria-label="Edit the predicted time for Sam, currently 15:00">Edit call</button>
                     <span class="timing-result"><span class="timing-elapsed">15:12</span><span class="timing-delta delta-off">0:12 over</span><button type="button" class="quiet-button" aria-label="Undo the finish time for Sam">Undo</button></span>
                   </div>
                 </div>
               </section>
+            </div>
+          </div>
+        </div>
+
+        <div class="sg-sub">
+          <h3>Call editor</h3>
+          <p class="sg-sub-note"><code>.timing-edit</code> — the form <strong>Edit call</strong> opens on race control, so an organiser can correct a predicted time. <code>flex-basis: 100%</code> drops it onto its own line inside the timing row, the same trick <code>.start-button</code> uses inside the wave bar, so it never squeezes the clock sideways. Minutes and Seconds reuse the sign-up form's <code>.time-field</code> / <code>.two-columns</code> pair, capped at 150px each from 700px up. One row is open at a time, and the open editor is state in <code>results.js</code>, not DOM — the four-second sheet poll rebuilds this list, and a form living only in the DOM would be snatched away mid-correction. The sign-up page has no editing on it at all.</p>
+
+          <div class="sg-demo">
+            <div class="sg-demo-label"><code>.timing-edit</code> — open, before the first gun</div>
+            <div class="sg-demo-body sg-flush">
+              <section class="wave-block">
+                <div class="wave-bar pending">
+                  <div class="wave-bar-main"><h3>Wave 2</h3><p class="wave-meta">0 of 1 home</p></div>
+                  <p class="wave-clock waiting">On the line</p>
+                  <button type="button" class="start-button">Start wave 2</button>
+                </div>
+                <div class="wave-body">
+                  <div class="timing-row">
+                    <span class="roster-who"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Bea</span><span class="roster-pred">called 30:00</span></span>
+                    <button type="button" class="quiet-button neutral" aria-expanded="true" aria-controls="sg-callEdit" aria-label="Edit the predicted time for Bea, currently 30:00">Edit call</button>
+                    <span class="timing-result"><button type="button" class="finish-button" disabled aria-label="Finish Bea — wave not started yet">Finish</button></span>
+                    <form class="timing-edit" id="sg-callEdit" novalidate onsubmit="return false">
+                      <fieldset class="time-field">
+                        <legend>New predicted time for Bea</legend>
+                        <div class="two-columns">
+                          <span class="field">
+                            <label for="sg-callMinutes">Minutes</label>
+                            <input id="sg-callMinutes" name="minutes" type="number" inputmode="numeric" min="0" max="599" step="1" placeholder="0" value="30" aria-describedby="sg-callHelp" />
+                          </span>
+                          <span class="field">
+                            <label for="sg-callSeconds">Seconds</label>
+                            <input id="sg-callSeconds" name="seconds" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" value="0" aria-describedby="sg-callHelp" />
+                          </span>
+                        </div>
+                        <p class="helper-text" id="sg-callHelp">Leave a box empty and we count it as zero. Waves have not locked yet, so this can move them — and whoever is closest to them — into a different wave.</p>
+                      </fieldset>
+                      <p class="form-error hidden" id="sg-callError" role="alert"></p>
+                      <div class="dialog-footer">
+                        <button type="button" class="secondary-button">Cancel</button>
+                        <button type="submit" class="save-button">Save the call</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="sg-demo">
+            <div class="sg-demo-label">The same form rejecting an empty call — <code>aria-invalid</code>, <code>role="alert"</code>, and the helper line for a race whose waves are already locked</div>
+            <div class="sg-demo-body sg-canvas">
+              <form class="timing-edit" style="flex-basis:auto" novalidate onsubmit="return false">
+                <fieldset class="time-field">
+                  <legend>New predicted time for Sam</legend>
+                  <div class="two-columns">
+                    <span class="field">
+                      <label for="sg-callMinutes2">Minutes</label>
+                      <input id="sg-callMinutes2" name="minutes" type="number" inputmode="numeric" min="0" max="599" step="1" placeholder="0" aria-invalid="true" aria-describedby="sg-callHelp2 sg-callError2" />
+                    </span>
+                    <span class="field">
+                      <label for="sg-callSeconds2">Seconds</label>
+                      <input id="sg-callSeconds2" name="seconds" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" aria-describedby="sg-callHelp2" />
+                    </span>
+                  </div>
+                  <p class="helper-text" id="sg-callHelp2">Leave a box empty and we count it as zero. Waves are locked in, so wave 2 stays wave 2. They are already home, so their result on the board changes too.</p>
+                </fieldset>
+                <p class="form-error" id="sg-callError2" role="alert">Give us a predicted time — even a rough one.</p>
+                <div class="dialog-footer">
+                  <button type="button" class="secondary-button">Cancel</button>
+                  <button type="submit" class="save-button">Save the call</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -565,7 +644,8 @@
               <tr><td><code>.finish-button</code></td><td>Stop one racer's clock</td><td><code>--ink</code> fill, 48px</td></tr>
               <tr><td><code>.secondary-button</code></td><td>Admin actions</td><td><code>#eef0f4</code> fill, <code>--line-strong</code> border</td></tr>
               <tr><td><code>.secondary-button.danger</code></td><td>Destructive</td><td><code>--red-bg</code> fill, <code>--red</code> border and label</td></tr>
-              <tr><td><code>.quiet-button</code></td><td>Undo / Take it back</td><td>White, <code>--line-strong</code> border, 44px</td></tr>
+              <tr><td><code>.quiet-button</code></td><td>Edit call / Undo / Take it back</td><td>White, <code>--line-strong</code> border, 44px</td></tr>
+              <tr><td><code>.quiet-button.neutral</code></td><td>Same, where the action is <strong>not</strong> a reversal or a removal (Edit call)</td><td>As above, but the hover is <code>--ink</code> / <code>--navy-bg</code> instead of red</td></tr>
               <tr><td><code>.text-button</code></td><td>Header-only, low weight</td><td>Transparent, <code>--muted</code></td></tr>
             </tbody>
           </table></div>
@@ -576,6 +656,7 @@
               <button type="button" class="secondary-button" style="width:auto">Clear all times</button>
               <button type="button" class="secondary-button danger" style="width:auto">Wipe the whole race</button>
               <button type="button" class="quiet-button">Undo</button>
+              <button type="button" class="quiet-button neutral">Edit call</button>
               <button type="button" class="text-button">Refresh</button>
             </div>
           </div>
@@ -654,12 +735,13 @@
           <li><strong>Live regions are rationed.</strong> Exactly one polite live region per page: <code>#announcer</code>, a visually-hidden <code>role="status"</code>. Short, deliberate sentences go through <code>announce()</code> — "Racer 4, Priya, finished, 12 seconds over."</li>
           <li><strong>Nothing that ticks is ever inside a live region.</strong> The race clock is <code>role="timer" aria-live="off"</code>; wave clocks and per-racer clocks are plain text. A clock that speaks five times a second makes the page unusable. Containers that re-render wholesale have no <code>aria-live</code> at all — announcing an entire rebuilt list is worse than announcing nothing.</li>
           <li><strong>The sync pill is not a live region.</strong> It polls every four seconds; as a live region it would natter constantly. Only a genuine online↔offline transition is announced, once, through <code>#announcer</code>.</li>
-          <li><strong>Focus survives re-rendering.</strong> Buttons that survive a render under a different name carry <code>data-focus-key</code>, and <code>keepFocus()</code> moves focus to the same key afterwards — so Finish → Undo → Finish keeps you in the same row. Where an element genuinely disappears, the handler decides explicitly where focus goes next. Never let focus fall back to <code>&lt;body&gt;</code>.</li>
+          <li><strong>Focus survives re-rendering.</strong> Buttons that survive a render under a different name carry <code>data-focus-key</code>, and <code>keepFocus()</code> moves focus to the same key afterwards — so Finish → Undo → Finish keeps you in the same row. The call editor's two boxes carry one too, so the four-second poll cannot rebuild the form out from under someone typing in it. Where an element genuinely disappears, the handler decides explicitly where focus goes next — the editor hands focus back to the Edit call button that opened it, on Save, Cancel or <code>Escape</code>. Never let focus fall back to <code>&lt;body&gt;</code>.</li>
+          <li><strong>Move focus after the render, never during it.</strong> <code>renderControl()</code> builds a row and its editor detached and appends the finished wave block afterwards, and <code>.focus()</code> on a node that is not in the document yet does nothing and reports nothing. Every explicit focus move runs <em>after</em> <code>render()</code> returns and re-queries the DOM. Redrawing a validation error is split for the same reason: <code>showFieldError(…, { moveFocus: false })</code> rewires the ARIA on every render, and only the render following a failed save moves the caret.</li>
           <li><strong>Errors.</strong> Each form error is a <code>role="alert"</code> paragraph. On failure the offending field gets <code>aria-invalid="true"</code> and the error's id appended to its <code>aria-describedby</code>; both are cleared as soon as the field is edited.</li>
           <li><strong>Headings.</strong> One <code>h1</code> per rendered view. Because panels are toggled with <code>display: none</code>, only the active view's headings are in the accessibility tree, so each <code>role="tabpanel"</code> starts its own h1 → h2 → h3 ladder.</li>
           <li><strong>Keyboard.</strong> Every action is reachable and operable without a pointer. Tabs use the ARIA authoring practice: roving <code>tabindex</code>, arrow keys / Home / End, and focus moves into the panel on activation. <code>:focus-visible</code> gives a 3px <code>--focus</code> outline with 3px offset, switched to white on ink and green surfaces. A skip link is the first element on every page.</li>
           <li><strong>Targets and reflow.</strong> 44px minimum on everything interactive, 48px on primary controls, 16px form inputs, 320px reflow with no horizontal scroll.</li>
-          <li><strong>Text alternatives.</strong> The logo's <code>alt</code> is the club name. Decorative glyphs (<code>+</code>, <code>★</code>, <code>→</code>, <code>↗</code>) are <code>aria-hidden="true"</code>. Icon-free buttons whose visible text is ambiguous in isolation ("Undo", "Finish", "Take it back") get an <code>aria-label</code> naming the racer.</li>
+          <li><strong>Text alternatives.</strong> The logo's <code>alt</code> is the club name. Decorative glyphs (<code>+</code>, <code>★</code>, <code>→</code>, <code>↗</code>) are <code>aria-hidden="true"</code>. Icon-free buttons whose visible text is ambiguous in isolation ("Edit call", "Undo", "Finish", "Take it back") get an <code>aria-label</code> naming the racer — Edit call's also states the time it is about to change, since "edit" alone does not say what. A disclosure button carries <code>aria-expanded</code>, and <code>aria-controls</code> only while the thing it controls exists.</li>
           <li><strong>ARIA is a last resort.</strong> Radios for the race picker, <code>&lt;fieldset&gt;</code>/<code>&lt;legend&gt;</code> for groups, <code>&lt;th scope&gt;</code> for tables, real <code>&lt;button&gt;</code>s and <code>&lt;a&gt;</code>s. <code>role="tab"</code> and <code>role="status"</code> are used because HTML has no equivalent; nothing else is.</li>
         </ul>
       </section>

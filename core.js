@@ -180,6 +180,50 @@ function fmtDelta(deltaMs) {
   return `${fmtClock(Math.abs(rounded))} ${rounded > 0 ? 'over' : 'under'}`;
 }
 
+/**
+ * The Minutes / Seconds pair a form collects, turned into one predicted time.
+ *
+ * A blank box counts as zero: somebody calling a flat 25 minutes types 25 and stops,
+ * and making them type a 0 in Seconds to be allowed in is a trap, not a rule.
+ *
+ * Returns `{ ok: true, predictedSec }`, or `{ ok: false, error, field }` where `field`
+ * is `'minutes'` or `'seconds'` — whichever box the message should point at.
+ *
+ * This lives here rather than on a page because it is a rule about predicted times, not
+ * about one form. `input.js` still carries its own copy of these same rules; moving it
+ * onto this helper would mean editing the sign-up page, which the change that added this
+ * was asked to leave alone. Do it in its own commit — and change both, or the two
+ * screens will start disagreeing about what a valid call is.
+ */
+function parsePredictedTime(minutesRaw, secondsRaw) {
+  const raw = v => (v == null ? '' : String(v).trim());
+  const part = v => (raw(v) === '' ? 0 : Number(v));
+  const minutes = part(minutesRaw);
+  const seconds = part(secondsRaw);
+
+  if (!Number.isInteger(minutes) || minutes < 0 || minutes > 599) {
+    return { ok: false, field: 'minutes', error: 'Minutes needs to be a whole number between 0 and 599.' };
+  }
+  if (!Number.isInteger(seconds) || seconds < 0 || seconds > 59) {
+    return { ok: false, field: 'seconds', error: 'Seconds needs to be a whole number between 0 and 59.' };
+  }
+
+  const predictedSec = minutes * 60 + seconds;
+  /* Both rejections below are "zero", but the people are different. One forgot to type;
+     the other typed 0 and meant it. */
+  if (predictedSec <= 0) {
+    const bothBlank = raw(minutesRaw) === '' && raw(secondsRaw) === '';
+    return {
+      ok: false,
+      field: 'minutes',
+      error: bothBlank
+        ? 'Give us a predicted time — even a rough one.'
+        : 'Nought is not a time. What are you chasing?'
+    };
+  }
+  return { ok: true, predictedSec };
+}
+
 /** Spoken form for the announcer — "1 minute 5 seconds over". */
 function sayDelta(deltaMs) {
   const rounded = Math.round(Math.abs(deltaMs) / 1000);
@@ -528,6 +572,41 @@ function removeRacer(id) {
   renderPage();
 }
 
+/**
+ * Correct a racer's call. An organiser's action, from `boltresults.html` — the sign-up
+ * sheet's start list is read-only on purpose, because it is a phone passed hand to hand
+ * at the start line.
+ *
+ * Re-bucketing needs no work here, and that is the point: a wave is not stored until the
+ * first gun, so before the lock `buildWaveMap()` regroups on predicted time at the next
+ * render and the racer lands in the right wave — possibly taking a neighbour with them,
+ * since the five-minute groups are drawn off the whole field. Once `wavesLocked` is true
+ * the stored wave wins and nobody moves: a field that regrouped mid-race would be a
+ * different race. Editing a locked racer's call still changes what they are measured
+ * against, which is the whole point of fixing a typo after the gun.
+ *
+ * Returns `{ ok, racer, was, wave, locked }`, or `{ ok: false, error }`.
+ */
+function setPredictedTime(id, predictedSec) {
+  const data = race();
+  const racer = data.racers.find(r => r.id === id);
+  if (!racer) return { ok: false, error: 'No racer with that number.' };
+  /* Like addRacer(), core does not police what a form let through — 0 is accepted here
+     and refused by parsePredictedTime(). NaN is different: it would spread through every
+     delta, the whole leaderboard and all five series totals, so that one is refused. */
+  if (!Number.isInteger(predictedSec) || predictedSec < 0) {
+    return { ok: false, error: 'A predicted time has to be a whole number of seconds.' };
+  }
+
+  const was = racer.predictedSec;
+  racer.predictedSec = predictedSec;
+  save();
+  queue('setPredictedTime', { id, predictedSec });
+  renderPage();
+
+  return { ok: true, racer, was, wave: raceView().map.get(id), locked: data.wavesLocked };
+}
+
 function startWave(wave) {
   const data = race();
   if (data.waveStarts[wave] != null) return;
@@ -717,13 +796,20 @@ function rosterWho(r, { showPred = true } = {}) {
   return span;
 }
 
-/** Show an error against the field that caused it, and say it out loud once. */
-function showFieldError(errorEl, message, field) {
+/**
+ * Show an error against the field that caused it, and say it out loud once.
+ *
+ * `moveFocus: false` wires the same ARIA but leaves the caret alone. That is for redrawing
+ * an error the organiser has already been shown: the sheet poll rebuilds the race-control
+ * wave list every few seconds, and yanking focus out of the box someone is mid-way through
+ * correcting — four seconds after they were sent there — is worse than not moving it at all.
+ */
+function showFieldError(errorEl, message, field, { moveFocus = true } = {}) {
   errorEl.textContent = message;
   errorEl.classList.remove('hidden');
   if (field) {
     // Keyboard and screen-reader users should land on the box they have to fix.
-    field.focus();
+    if (moveFocus) field.focus();
     field.setAttribute('aria-invalid', 'true');
     const described = (field.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
     if (!described.includes(errorEl.id)) {
