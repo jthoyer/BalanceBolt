@@ -25,10 +25,7 @@ the timing screen has no route back to sign-up. `admin.html` is the exception �
 one-way jumping-off point that links to both, for whoever is running the day and needs
 to move between them. `boltresults.html` carries a **Race 1–5** picker; the selected
 race is stored on the device and mirrored into the URL as `?race=2`, so a screen can be
-parked on one race and left alone. Next to the picker, **Copy race N sign-up link**
-copies `index.html?race=2` for whichever race is selected — the link to hand racers so
-they land straight on that race's start list, with nothing to pick on their end.
-`index.html` has no picker of its own — whoever is
+parked on one race and left alone. `index.html` has no picker of its own — whoever is
 signing people up gets whichever race is already in the URL or stored on that device, so
 switching races is an admin action taken on `boltresults.html`, not something the phone
 being passed around can do on its own.
