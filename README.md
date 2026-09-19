@@ -80,15 +80,20 @@ costs. The rule is printed on the Series panel so nobody has to guess.
 
 Per race, awarded automatically as results come in:
 
-| Prize | Who gets it |
-|---|---|
-| Closest to the call | Smallest gap between actual and predicted — **1st place** |
-| 2nd closest to the call | Second-smallest gap |
-| 3rd closest to the call | Third-smallest gap |
-| Furthest from the call | Largest gap — **last place** |
+| Prize | Who gets it | Shown as |
+|---|---|---|
+| Closest to the call | Smallest gap between actual and predicted — **1st place** | Gold medal card |
+| 2nd closest to the call | Second-smallest gap | Silver medal card |
+| 3rd closest to the call | Third-smallest gap | Bronze medal card |
+| Furthest from the call | Largest gap — **last place**, and only once more than three racers are home | Dark navy card, deliberately not a medal |
+
+These sit above the ranked table on the Results panel, which is one combined
+leaderboard-and-prizes section: a racer's name and times are printed once, on their
+medal card and in their table row, never in a second list underneath.
 
 Plus **adhoc prizes** — type any prize name on the Results panel, pick a racer, award
-it. Best hat, best excuse, whatever the day throws up.
+it. Best hat, best excuse, whatever the day throws up. Those are the only prizes in
+the list below the table.
 
 Per-race prizes are unaffected by series eligibility — someone who only turns up once
 can still win every prize on the day.

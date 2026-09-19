@@ -15,6 +15,16 @@
   --green: #116b43;
   --green-bg: #e8f6ee;
   --navy-bg: #eef2fb;
+  /* Medals. Fills are decorative — every medal is also printed as a place number and a
+     prize title, so nothing depends on telling gold from bronze. The rims are what the
+     eye reads as an edge, so they carry the 3:1 non-text ratio against the canvas. */
+  --gold: #dba82f;          /* 1st place fill — ink text on top at 6.98:1 */
+  --gold-rim: #8c6214;      /* 5.10:1 on canvas, 5.42:1 as the chip numeral on white */
+  --gold-bg: #fbf0d5;       /* leading row tint — ink 13.40:1, muted 5.49:1 */
+  --silver: #d3dae3;        /* 2nd place fill — ink text at 10.79:1 */
+  --silver-rim: #5f6b7d;    /* 5.09:1 on canvas, 5.40:1 on white */
+  --bronze: #9c5a2c;        /* 3rd place fill — white text at 5.37:1 */
+  --bronze-rim: #6f3f1e;    /* 8.21:1 on canvas, 8.73:1 on white */
   --slate: #3f4d6b;         /* a finished wave */
   --brand-blue: #00a3e0;    /* brand mark only, never text */
   --red: #b3261e;
@@ -144,7 +154,7 @@ a.text-button { display: inline-flex; align-items: center; text-decoration: none
   margin: 0 0 8px; color: var(--muted);
   font: 700 12px "DM Sans", sans-serif; letter-spacing: 1.2px;
 }
-.hero .eyebrow, .podium-card .eyebrow, .confirm-card .eyebrow { color: var(--yellow-soft) }
+.hero .eyebrow, .podium-card.outlier .eyebrow, .confirm-card .eyebrow { color: var(--yellow-soft) }
 .hero h1 {
   margin: 0; font-family: Outfit, sans-serif;
   font-size: clamp(2rem, 9vw, 3.25rem); line-height: 1.08; letter-spacing: -1.2px;
@@ -336,14 +346,34 @@ a.primary-button, a.secondary-button, a.save-button {
 .danger-actions { display: grid; gap: 9px; margin-top: 14px }
 
 /* ── Leaderboard ─────────────────────────────────────────── */
+/* The medal cards and the table below them are one section, not two. A card is the
+   prize; the table is the whole field. A racer's name and times are printed once. */
 .podium { display: grid; gap: 12px }
-.podium-card { padding: 20px 18px; border-radius: 9px; color: #fff }
-.podium-card.first { background: var(--green) }
-.podium-card.last { background: var(--ink) }
+.podium-card { padding: 20px 18px; border: 2px solid transparent; border-radius: 9px }
+.podium-card.gold { background: var(--gold); border-color: var(--gold-rim); color: var(--ink) }
+.podium-card.silver { background: var(--silver); border-color: var(--silver-rim); color: var(--ink) }
+.podium-card.bronze { background: var(--bronze); border-color: var(--bronze-rim); color: #fff }
+/* Furthest from the call is not a 4th medal, so it gets no metal and no chip. */
+.podium-card.outlier { background: var(--ink); border-color: var(--ink); color: #fff }
+
+.medal-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-bottom: 10px;
+  border-radius: 999px; background: #fff;
+  font: 700 16px Outfit, sans-serif; font-variant-numeric: tabular-nums;
+}
+.podium-card.gold .medal-chip { color: var(--gold-rim) }
+.podium-card.silver .medal-chip { color: var(--silver-rim) }
+.podium-card.bronze .medal-chip { color: var(--bronze-rim) }
+
+.podium-card.gold .eyebrow, .podium-card.silver .eyebrow { color: var(--ink) }
+.podium-card.bronze .eyebrow { color: #fff }
 .podium-name { margin: 0; font: 700 26px Outfit, sans-serif; letter-spacing: -.5px }
 .podium-delta { margin: 6px 0 0; font: 700 22px Outfit, sans-serif; font-variant-numeric: tabular-nums }
-.podium-detail { margin: 4px 0 0; color: #e7f4ec; font-size: 14px; font-variant-numeric: tabular-nums }
-.podium-card.last .podium-detail { color: #e6ebf5 }
+.podium-detail { margin: 4px 0 0; font-size: 14px; font-variant-numeric: tabular-nums }
+.podium-card.gold .podium-detail, .podium-card.silver .podium-detail { color: #2c3752 }
+.podium-card.bronze .podium-detail { color: #faf0e9 }
+.podium-card.outlier .podium-detail { color: #e6ebf5 }
 
 .board-wrap { margin-top: 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 9px; background: #fff }
 .board { width: 100%; border-collapse: collapse; font-size: 15px }
@@ -355,9 +385,12 @@ a.primary-button, a.secondary-button, a.save-button {
 .board .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
 .board .col-rank { width: 40px; padding-right: 0 }
 .board .col-who { font-weight: 400 }
-.board tbody tr.is-first { background: var(--green-bg) }
-.board tbody tr.is-last { background: #fdf6e4 }
+.board tbody tr.is-first { background: var(--gold-bg) }
+.board tbody tr.is-last { background: var(--navy-bg) }
 .board tbody tr.is-running { color: var(--muted) }
+/* The bib pill is --navy-bg, which all but vanishes on a tinted row. White keeps the
+   shape readable; the number inside it is what carries the meaning either way. */
+.board tbody tr.is-first .bib, .board tbody tr.is-last .bib { background: #fff }
 
 /* Series: not-yet-qualified rows and dropped races. The meaning is carried by the text
    ("needs 2 more to qualify") and the strikethrough — never by colour alone. */
@@ -369,6 +402,15 @@ a.primary-button, a.secondary-button, a.save-button {
 .racer-sub { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums }
 .col-wide { display: none }                    /* wide columns fold into .racer-sub on phones */
 .rank-badge { font: 700 16px Outfit, sans-serif; font-variant-numeric: tabular-nums }
+/* Places 1-3 wear their medal in the rank column, which is what ties a row to its card
+   above. The numeral is inside the pill, so the medal is never the only signal. */
+.rank-badge.medal {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 999px;
+}
+.rank-badge.gold { background: var(--gold); color: var(--ink) }
+.rank-badge.silver { background: var(--silver); color: var(--ink) }
+.rank-badge.bronze { background: var(--bronze); color: #fff }
 .status-tag {
   display: inline-block; padding: 3px 9px; border-radius: 999px;
   background: var(--navy-bg); color: var(--muted); font-size: 12px; font-weight: 700;
@@ -482,7 +524,7 @@ select:focus-visible,
 
   .danger-actions { grid-auto-flow: column; justify-content: start }
 
-  .podium { grid-template-columns: 1fr 1fr }
+  .podium { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) }
   .podium-card { padding: 24px }
 
   .admin-links { grid-template-columns: 1fr 1fr }
@@ -499,5 +541,6 @@ select:focus-visible,
 
 /* ── Desktop ─────────────────────────────────────────────── */
 @media (min-width: 1000px) {
-  .podium { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) }
+  /* Four cards across the 1100px shell: three medals plus the wooden spoon. */
+  .podium { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)) }
 }

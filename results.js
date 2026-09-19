@@ -178,7 +178,18 @@ function announceFinish({ racer, res }) {
   announce(`Racer ${racer.number}, ${racer.name}, finished${gap}.`);
 }
 
-/* ── Leaderboard ───────────────────────────────────────────────────────── */
+/* ── Leaderboard and its automatic prizes ──────────────────────────────── */
+
+/* The three automatic prizes are the top three places, so they are drawn once — as
+   medal cards over the table they rank. The prize list further down the page holds
+   only what the organiser makes up on the day. */
+const MEDALS = [
+  { kind: 'gold', place: 1, eyebrow: 'CLOSEST TO THE CALL' },
+  { kind: 'silver', place: 2, eyebrow: '2ND CLOSEST TO THE CALL' },
+  { kind: 'bronze', place: 3, eyebrow: '3RD CLOSEST TO THE CALL' }
+];
+
+const OUTLIER = { kind: 'outlier', eyebrow: 'FURTHEST FROM THE CALL' };
 
 function renderBoard(v) {
   const rows = ranked(v);
@@ -187,20 +198,23 @@ function renderBoard(v) {
 
   const podium = $('#podium');
   podium.innerHTML = '';
-  if (rows.length) {
-    podium.append(podiumCard('first', 'CLOSEST TO THE CALL', rows[0]));
-    if (rows.length > 1) podium.append(podiumCard('last', 'FURTHEST FROM THE CALL', rows[rows.length - 1]));
-  }
+  MEDALS.slice(0, rows.length).forEach((medal, i) => podium.append(podiumCard(medal, rows[i])));
+
+  /* Only hand out a wooden spoon when someone finished outside the medals. With three
+     or fewer finishers the furthest racer is already wearing bronze, and naming them
+     twice is the duplication this section was merged to get rid of. */
+  if (rows.length > MEDALS.length) podium.append(podiumCard(OUTLIER, rows[rows.length - 1]));
 
   const body = $('#boardBody');
   body.innerHTML = '';
 
   rows.forEach((row, i) => {
+    const medal = MEDALS[i];
     const tr = document.createElement('tr');
     if (i === 0) tr.className = 'is-first';
-    else if (i === rows.length - 1 && rows.length > 1) tr.className = 'is-last';
+    else if (!medal && i === rows.length - 1) tr.className = 'is-last';
     tr.innerHTML = `
-      <td class="col-rank"><span class="rank-badge">${i + 1}</span></td>
+      <td class="col-rank"><span class="rank-badge${medal ? ` medal ${medal.kind}` : ''}">${i + 1}</span></td>
       <th scope="row" class="col-who">
         <span class="racer-cell">
           <span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number"></span></span>
@@ -239,10 +253,13 @@ function renderBoard(v) {
   });
 }
 
-function podiumCard(kind, eyebrow, row) {
+/* The place number is `aria-hidden` because the eyebrow beside it already says
+   "2nd closest to the call", and the table below repeats the rank in its own column. */
+function podiumCard({ kind, place, eyebrow }, row) {
   const card = document.createElement('div');
   card.className = `podium-card ${kind}`;
   card.innerHTML = `
+    ${place ? `<span class="medal-chip" aria-hidden="true">${place}</span>` : ''}
     <p class="eyebrow">${eyebrow}</p>
     <p class="podium-name"></p>
     <p class="podium-delta">${fmtDelta(row.delta)}</p>
@@ -252,27 +269,6 @@ function podiumCard(kind, eyebrow, row) {
 }
 
 /* ── Prizes ────────────────────────────────────────────────────────────── */
-
-const CLOSEST_TITLES = ['Closest to the call', '2nd closest to the call', '3rd closest to the call'];
-
-/** The fun stuff: automatic awards plus anything the organiser invents on the day. */
-function autoPrizes(v) {
-  const rows = ranked(v);
-  if (!rows.length) return [];
-  const prizes = [];
-  const who = row => `#${row.racer.number} ${row.racer.name}`;
-
-  rows.slice(0, 3).forEach((row, i) => {
-    prizes.push({ title: CLOSEST_TITLES[i], winner: who(row), detail: fmtDelta(row.delta) });
-  });
-
-  if (rows.length > 3) {
-    const furthest = rows[rows.length - 1];
-    prizes.push({ title: 'Furthest from the call', winner: who(furthest), detail: fmtDelta(furthest.delta) });
-  }
-
-  return prizes;
-}
 
 function prizeCard({ title, winner, detail, extra }) {
   const card = document.createElement('article');
@@ -284,11 +280,10 @@ function prizeCard({ title, winner, detail, extra }) {
   return card;
 }
 
+/** Only the made-up ones live here — the automatic three are the medal cards above. */
 function renderPrizes(v) {
   const container = $('#prizeList');
   container.innerHTML = '';
-
-  autoPrizes(v).forEach(p => container.append(prizeCard(p)));
 
   v.data.prizes.forEach(p => {
     const racer = racerById(v, p.racerId);
@@ -315,7 +310,7 @@ function renderPrizes(v) {
   });
 
   if (!container.children.length) {
-    container.innerHTML = '<p class="empty-state">Prizes appear as soon as the first racer finishes.</p>';
+    container.innerHTML = '<p class="empty-state">Nothing made up yet. The medals above are handed out automatically.</p>';
   }
 
   const select = $('#prizeRacer');

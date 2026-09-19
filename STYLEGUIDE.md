@@ -23,9 +23,16 @@ classes. If you need a new pattern, add it to `styles.css` **and** to this file.
 | `--canvas` | `#f7f8fa` | Page background |
 | `--yellow` | `#f8c44f` | Fills only — primary button, wave start button, hero highlight |
 | `--yellow-soft` | `#ffe08f` | Small accent **text** on ink or green (the eyebrow on dark cards) |
-| `--green` | `#116b43` | A wave that is running, first place, success |
-| `--green-bg` | `#e8f6ee` | Winning row tint, series prize card |
-| `--navy-bg` | `#eef2fb` | Bib badges, status tags, table headers |
+| `--green` | `#116b43` | A wave that is running, a bang-on result, success |
+| `--green-bg` | `#e8f6ee` | Series prize card, connected sync pill. **Not** the winning row — that is `--gold-bg` |
+| `--navy-bg` | `#eef2fb` | Bib badges, status tags, table headers, the furthest-from-the-call row |
+| `--gold` | `#dba82f` | 1st place: medal card fill and rank badge. Deeper than `--yellow` on purpose — a medal is not a button |
+| `--gold-rim` | `#8c6214` | The 1st-place card edge, and the numeral in its medal chip |
+| `--gold-bg` | `#fbf0d5` | Leading row tint on both tables |
+| `--silver` | `#d3dae3` | 2nd place: medal card fill and rank badge |
+| `--silver-rim` | `#5f6b7d` | The 2nd-place card edge, and the numeral in its medal chip |
+| `--bronze` | `#9c5a2c` | 3rd place: medal card fill and rank badge. The one medal dark enough to take white text |
+| `--bronze-rim` | `#6f3f1e` | The 3rd-place card edge, and the numeral in its medal chip |
 | `--slate` | `#3f4d6b` | A wave where everyone is home |
 | `--red` | `#b3261e` | Errors, destructive actions |
 | `--red-bg` | `#fdecec` | Error message and danger button background |
@@ -57,9 +64,11 @@ states need 3:1.
 | `#ffffff` on `--slate` | 8.45 |
 | `#e6ebf5` on `--slate` | 7.07 |
 | `#ffffff` on `--green` | 6.55 |
-| `#e7f4ec` (podium detail, confirm detail) on `--green` | 5.78 |
+| `#e7f4ec` (confirm detail) on `--green` | 5.78 |
 | `#e6ebf5` on `--green` | 5.48 |
 | `--yellow-soft` on `--green` | 5.08 |
+| `#ffffff` (name, delta, eyebrow) on `--bronze` | 5.37 |
+| `#faf0e9` (bronze card detail) on `--bronze` | 4.78 |
 
 **Text on light**
 
@@ -67,22 +76,31 @@ states need 3:1.
 |---|---|
 | `--ink` on `#ffffff` | 15.19 |
 | `--ink` on `--canvas` | 14.30 |
-| `--ink` on `#fdf6e4` (last-place row) | 14.09 |
 | `--ink` on `--green-bg` | 13.64 |
 | `--ink` on `--navy-bg` | 13.55 |
+| `--ink` on `--gold-bg` (leading row) | 13.40 |
 | `--ink` on `#eef0f4` (secondary button) | 13.32 |
+| `--ink` on `--silver` (2nd medal card, 2nd rank badge) | 10.79 |
 | `--ink` on `--yellow` (primary button label) | 9.41 |
+| `--bronze-rim` on `#ffffff` (3rd medal chip numeral) | 8.73 |
+| `#2c3752` (silver card detail) on `--silver` | 8.40 |
+| `--ink` on `--gold` (1st medal card, 1st rank badge) | 6.98 |
 | `--green` on `#ffffff` | 6.55 |
 | `--red` on `#ffffff` | 6.54 |
 | `--muted` on `#ffffff` | 6.23 |
 | `--muted` on `#fffaf0` (adhoc prize card) | 5.99 |
 | `--green` on `--green-bg` | 5.88 |
 | `--muted` on `--canvas` | 5.86 |
-| `--muted` on `#fdf6e4` | 5.78 |
+| `--green` on `--navy-bg` (bang-on delta, furthest row) | 5.84 |
+| `--green` on `--gold-bg` (bang-on delta, leading row) | 5.78 |
 | `--red` on `--red-bg` | 5.72 |
 | `--muted` on `--green-bg` | 5.59 |
 | `--muted` on `--navy-bg` | 5.55 |
+| `--muted` on `--gold-bg` | 5.49 |
 | `--muted` on `#eef0f4` | 5.46 |
+| `#2c3752` (gold card detail) on `--gold` | 5.44 |
+| `--gold-rim` on `#ffffff` (1st medal chip numeral) | 5.42 |
+| `--silver-rim` on `#ffffff` (2nd medal chip numeral) | 5.40 |
 
 **Non-text (3:1 needed)**
 
@@ -94,7 +112,11 @@ states need 3:1.
 | `--red` border on `--canvas` | 6.15 |
 | `--focus` ring on `--green-bg` | 5.98 |
 | `--focus` ring on `--navy-bg` | 5.94 |
+| `--focus` ring on `--gold-bg` | 5.88 |
 | `--green` fill on `#ffffff` | 6.55 |
+| `--bronze-rim` medal card edge on `--canvas` | 8.21 |
+| `--gold-rim` medal card edge on `--canvas` | 5.10 |
+| `--silver-rim` medal card edge on `--canvas` | 5.09 |
 | `--yellow` start button on the `--green` wave bar | 4.05 |
 | `--line-strong` on `#ffffff` | 3.76 |
 | `--line-strong` on `#fffaf0` | 3.62 |
@@ -111,6 +133,8 @@ states need 3:1.
 | `#eff1f4` row dividers on `#ffffff` | 1.13 | Decorative separators between list rows. |
 | `#e0c07a` on `#ffffff` (adhoc prize tint) | 1.75 | Decorative tint. The card is identified by its heading, not its border. |
 | `--yellow` fill against `--canvas` | 1.52 | The primary button is identified by its `--ink` label at 9.41:1. WCAG 1.4.11 does not require a boundary when the component is identifiable another way. |
+| `#ffffff` medal chip on `--gold` / `--silver` | 2.18 / 1.41 | Decorative disc. The place number inside it is the component, at 5.42:1 and 5.40:1. |
+| `#ffffff` bib pill on `--gold-bg` / `--navy-bg` rows | 1.13 / 1.12 | Decorative pill, same case as the `--line` card edge. The bib number reads at 15.19:1. It is white rather than `--navy-bg` only because `--navy-bg` on a tinted row measures 1.01 and the pill shape disappears entirely. |
 
 **Never do this** (both were live bugs, now fixed):
 
@@ -121,7 +145,10 @@ states need 3:1.
 
 Rank is always printed as a number as well as tinted. "Bang on" results are green
 *and* say `0:03 under`. A running racer gets a `Waiting` / `On course` status tag,
-not just grey text.
+not just grey text. A medal is never only a colour: the card carries a place number
+in its chip *and* spells out the prize ("2nd closest to the call"), and the matching
+rank badge in the table has the numeral inside the metal pill. Nobody has to tell
+gold from bronze to know who won.
 
 ---
 
@@ -248,13 +275,31 @@ visually-hidden `Racer ` prefix so it does not announce as a bare digit.
 Small `--navy-bg` pill for a non-numeric state — `On course`, `Waiting`.
 
 ### Podium card (`.podium-card`)
-Two per race: `.first` on `--green`, `.last` on `--ink`. Eyebrow, name, delta, detail.
-Eyebrow uses `--yellow-soft`.
+Up to four per race, and they *are* the automatic prizes — there is no second list of
+them anywhere on the page. Each card is a 2px-rimmed block holding an optional medal
+chip, an eyebrow naming the prize, the racer, the delta and the called/ran detail.
+
+| Variant | Fill / rim | Text | Chip | When |
+|---|---|---|---|---|
+| `.gold` | `--gold` / `--gold-rim` | `--ink`, detail `#2c3752` | `1` | Closest to the call |
+| `.silver` | `--silver` / `--silver-rim` | `--ink`, detail `#2c3752` | `2` | 2nd closest |
+| `.bronze` | `--bronze` / `--bronze-rim` | `#ffffff`, detail `#faf0e9` | `3` | 3rd closest |
+| `.outlier` | `--ink` / `--ink` | `#ffffff`, detail `#e6ebf5`, eyebrow `--yellow-soft` | none | Furthest from the call |
+
+**`.outlier` is deliberately not a metal and deliberately has no chip** — a wooden
+spoon that looked like a fourth medal would read as 4th place. It only appears when
+more than three racers have finished: with three or fewer, the furthest racer is
+already wearing bronze, and naming them twice is the duplication this layout removed.
+
+`.medal-chip` is a 30px white disc holding the place number, `aria-hidden` because the
+eyebrow beside it already says which prize this is and the table repeats the rank.
 
 ### Prize card (`.prize-card`)
 White card, uppercase `--muted` `h3` title, big Outfit winner name, `--muted` detail.
-Variants: `.adhoc` (warm tint, carries a "Take it back" button) and `.series` (green
-tint with a thick left border, for series-wide prizes).
+Now only for prizes the podium does not already award: `.adhoc` (warm tint, carries a
+"Take it back" button) and `.series` (green tint with a thick left border, for
+series-wide prizes). The three closest-to-the-call prizes and the wooden spoon are
+podium cards, not prize cards.
 
 ### Rule card (`.rule-card`)
 White card with a 4px `--ink` left border, used to explain a scoring rule in the place
@@ -342,12 +387,14 @@ information is repeated in a `.racer-sub` line under the name. The name cell is 
 |---|---|---|
 | `tr.is-first` | Leader | Rank number `1` in the rank column |
 | `tr.is-last` | Furthest from the call | Rank number, and the podium card names them |
+| `.rank-badge.medal.gold` / `.silver` / `.bronze` | 1st, 2nd, 3rd — the three automatic prizes | The place number sits inside the metal pill |
 | `tr.is-running` | Still on course | `On course` / `Waiting` status tag |
 | `tr.not-eligible` | Under four finished races, out of the grand prize | Rank shows `—`, and the sub-line says "needs 2 more to qualify" |
 | `td.is-dropped` | The race dropped by best-four scoring | `<s>` strikethrough plus a visually-hidden "(dropped)" |
 
-`.is-dropped` measures 5.59:1 and 6.23:1 against its row backgrounds — greying a cell
-is never allowed to push it under 4.5:1.
+`.is-dropped` measures 5.49:1, 5.86:1 and 6.23:1 against its row backgrounds
+(`--gold-bg`, `--canvas`, white) — greying a cell is never allowed to push it
+under 4.5:1.
 
 ---
 
@@ -358,7 +405,9 @@ Base CSS is the phone. There are exactly two breakpoints and both only add:
 - **`@media (min-width: 700px)`** — the real one. Thumb bar becomes top pills, buttons
   stop being full width, wide table columns appear and `.racer-sub` disappears, grids
   go multi-column, hero padding grows, the clock stops being sticky.
-- **`@media (min-width: 1000px)`** — podium gets wider columns. That is all.
+- **`@media (min-width: 1000px)`** — the podium drops to a 230px minimum so all four
+  cards (three medals plus the wooden spoon) sit on one row in the 1100px shell.
+  That is all.
 
 Non-negotiables:
 
