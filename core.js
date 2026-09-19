@@ -707,27 +707,6 @@ function renderRacePicker() {
   $$('[data-race-number]').forEach(el => { el.textContent = String(currentRace); });
 }
 
-/** The sign-up link for one race — the URL to hand racers so they land straight on it. */
-const signupUrlForRace = n => new URL(`index.html?race=${n}`, location.href).href;
-
-/** Clipboard access needs a secure context and can be denied, so fall back to a prompt
-    the organiser can copy from by hand rather than silently failing. */
-async function copySignupLink() {
-  const url = signupUrlForRace(currentRace);
-  try {
-    await navigator.clipboard.writeText(url);
-    announce(`Sign-up link for race ${currentRace} copied.`);
-  } catch {
-    window.prompt(`Sign-up link for race ${currentRace} — copy it from here:`, url);
-  }
-}
-
-function wireCopySignupLink() {
-  const btn = $('#copySignupLink');
-  if (!btn) return;
-  btn.addEventListener('click', copySignupLink);
-}
-
 /** Tabs follow the ARIA authoring practice: roving tabindex plus arrow keys. */
 function wireTabs(onChange) {
   const tabs = $$('[role="tab"]');
@@ -847,7 +826,6 @@ function tick() {
 
 function boot() {
   wireRacePicker();
-  wireCopySignupLink();
   const refresh = $('#refreshButton');
   if (refresh) refresh.addEventListener('click', () => sync({ pull: true }));
 
