@@ -644,6 +644,158 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(race(2).racers.length, 1, 'race 2 must survive a reset of race 1');
   });
 
+  /* ═══ Reading a call off a form ═════════════════════════════════════════ */
+
+  group('parsePredictedTime — the rules a call has to obey');
+
+  test('minutes and seconds add up to one predicted time', () => {
+    eq(parsePredictedTime('25', '30'), { ok: true, predictedSec: 1530 });
+  });
+
+  test('a blank box counts as zero, so a flat 25 minutes is just 25', () => {
+    eq(parsePredictedTime('25', ''), { ok: true, predictedSec: 1500 });
+    eq(parsePredictedTime('', '45'), { ok: true, predictedSec: 45 });
+  });
+
+  test('both boxes blank asks for a time — it does not call it nought', () => {
+    const out = parsePredictedTime('', '');
+    eq(out.ok, false);
+    eq(out.field, 'minutes');
+    ok(/even a rough one/.test(out.error), 'got: ' + out.error);
+  });
+
+  test('somebody who typed 0 and 0 gets the other message', () => {
+    const out = parsePredictedTime('0', '0');
+    eq(out.ok, false);
+    ok(/Nought is not a time/.test(out.error), 'got: ' + out.error);
+  });
+
+  test('minutes are whole and 0–599, and the error points at that box', () => {
+    eq(parsePredictedTime('600', '0').field, 'minutes');
+    eq(parsePredictedTime('-1', '0').field, 'minutes');
+    eq(parsePredictedTime('25.5', '0').field, 'minutes');
+    eq(parsePredictedTime('abc', '0').field, 'minutes');
+    eq(parsePredictedTime('599', '59'), { ok: true, predictedSec: 35999 }, 'the top of the range is allowed');
+  });
+
+  test('seconds are whole and 0–59, and the error points at THAT box', () => {
+    eq(parsePredictedTime('25', '60').field, 'seconds');
+    eq(parsePredictedTime('25', '-1').field, 'seconds');
+    eq(parsePredictedTime('25', '1.5').field, 'seconds');
+  });
+
+  test('surrounding spaces do not turn a valid call into a junk one', () => {
+    eq(parsePredictedTime(' 25 ', ' 30 '), { ok: true, predictedSec: 1530 });
+    eq(parsePredictedTime('  ', '  '), parsePredictedTime('', ''), 'whitespace is still blank');
+  });
+
+  /* ═══ Editing a call ════════════════════════════════════════════════════ */
+
+  group('setPredictedTime — correcting a call, and the re-bucketing that follows');
+
+  test('the call is changed and the old one is reported back', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    const out = setPredictedTime('a', 900);
+    eq(out.ok, true);
+    eq(out.was, 600);
+    eq(race(1).racers[0].predictedSec, 900);
+  });
+
+  test('editing an unknown racer is refused, and nothing else moves', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    eq(setPredictedTime('nope', 900).ok, false);
+    eq(race(1).racers[0].predictedSec, 600);
+  });
+
+  test('a call that is not a whole number of seconds is refused', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    eq(setPredictedTime('a', 12.5).ok, false, 'a fraction of a second');
+    eq(setPredictedTime('a', -1).ok, false, 'a negative call');
+    eq(setPredictedTime('a', Number('x')).ok, false, 'NaN would poison every delta and rank');
+    eq(race(1).racers[0].predictedSec, 600, 'the call is untouched by all three');
+  });
+
+  test('zero is accepted by core, exactly as addRacer accepts it — the form is the gate', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    eq(setPredictedTime('a', 0).ok, true, 'documents current behaviour, and mirrors addRacer');
+    eq(parsePredictedTime('0', '0').ok, false, 'and the form is what refuses it');
+  });
+
+  test('before the gun an edited call re-buckets the racer into the right wave', () => {
+    // 10:00 and 30:00 are 20 minutes apart, so they start in separate waves.
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 1800)], wavesLocked: false } });
+    eq(raceView(1).map.get('b'), 2, 'Bea starts in her own wave');
+
+    const out = setPredictedTime('b', 630); // 10:30 — now within five minutes of Ana
+    eq(out.wave, 1, 'the returned wave is the one she has just moved to');
+    eq(raceView(1).map.get('b'), 1);
+    eq(raceView(1).waves, [1], 'and the wave she left no longer exists');
+  });
+
+  test('re-bucketing can take a neighbour with it, because the groups are drawn off the field', () => {
+    /* Ana 10:00, Bea 16:00, Cal 22:00 — three groups, nobody within five minutes of
+       anybody. Pulling Bea down to 10:30 leaves Ana+Bea together and Cal on his own, so
+       Cal's wave number changes even though nobody edited Cal. */
+    setDb({ 1: { racers: [
+      racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 960), racer('c', 3, 'Cal', 1320)
+    ], wavesLocked: false } });
+    eq(raceView(1).map.get('c'), 3);
+
+    setPredictedTime('b', 630);
+    const map = raceView(1).map;
+    eq([map.get('a'), map.get('b'), map.get('c')], [1, 1, 2],
+       'Cal is now wave 2 — an edit is not local to the racer it names');
+  });
+
+  test('once waves are locked an edited call does NOT move the racer', () => {
+    setDb({ 1: {
+      racers: [racer('a', 1, 'Ana', 600, { wave: 1 }), racer('b', 2, 'Bea', 1800, { wave: 2 })],
+      waveStarts: { 1: T }, wavesLocked: true
+    } });
+    const out = setPredictedTime('b', 630); // would have grouped her with Ana before the gun
+    eq(out.locked, true);
+    eq(out.wave, 2, 'a field that regrouped mid-race would be a different race');
+    eq(raceView(1).map.get('b'), 2);
+    eq(race(1).racers[1].predictedSec, 630, 'but the call itself is still corrected');
+  });
+
+  test('a finished racer is re-measured against the corrected call', () => {
+    setDb({ 1: {
+      racers: [racer('a', 1, 'Ana', 600, { wave: 1, finishAt: T + 660000 })],
+      waveStarts: { 1: T }, wavesLocked: true
+    } });
+    const before = result(racerById(raceView(1), 'a'), raceView(1));
+    eq(before.delta, 60000, 'a minute over a 10:00 call');
+
+    setPredictedTime('a', 660); // she actually called 11:00; the 10:00 was a typo
+    const after = result(racerById(raceView(1), 'a'), raceView(1));
+    eq(after.delta, 0, 'and now she is dead on it');
+  });
+
+  test('correcting a call re-ranks the leaderboard', () => {
+    setDb({ 1: {
+      racers: [
+        racer('a', 1, 'Ana', 600, { wave: 1, finishAt: T + 630000 }),   // 0:30 over
+        racer('b', 2, 'Bea', 600, { wave: 1, finishAt: T + 605000 })    // 0:05 over
+      ],
+      waveStarts: { 1: T }, wavesLocked: true
+    } });
+    eq(ranked(raceView(1)).map(r => r.racer.id), ['b', 'a'], 'Bea is closest to start with');
+
+    setPredictedTime('b', 540); // Bea really called 9:00, so she is 1:05 out
+    eq(ranked(raceView(1)).map(r => r.racer.id), ['a', 'b'], 'the board follows the correction');
+  });
+
+  test('an edit in one race leaves the same person in another race alone', () => {
+    setDb({
+      1: { racers: [racer('a', 1, 'Ana', 600)] },
+      2: { racers: [racer('a2', 1, 'Ana', 600)] }
+    });
+    setPredictedTime('a', 900); // acts on currentRace, which is 1
+    eq(race(1).racers[0].predictedSec, 900);
+    eq(race(2).racers[0].predictedSec, 600, "race 2's call must survive an edit in race 1");
+  });
+
   /* ═══ Sync — the async path, where a green suite hid a real bug ═════════ */
 
   group('sync() — pulling without losing local work');
@@ -670,6 +822,23 @@ globalThis.__TESTS_DONE__ = (async function () {
     text: async () => JSON.stringify(body),
     json: async () => body
   }));
+
+  await atest('an edited call is queued for the sheet under the action the backend handles', async () => {
+    /* The action NAME is the contract. doPost() in apps-script.gs throws "Unknown action"
+       on anything it does not recognise, sync() treats that as a refusal rather than a
+       dropped signal, and shifts it off the queue for good — so a typo here would leave
+       the edit correct on this phone and never written to the sheet, until the next pull
+       quietly replaced it with the old call. The matching key is checked against
+       apps-script.gs in run-tests.mjs. */
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    await withStubbedSync(async () => {
+      setPredictedTime('a', 900);
+      eq(outbox.length, 1);
+      eq(outbox[0].action, 'setPredictedTime');
+      eq(outbox[0].payload.id, 'a');
+      eq(outbox[0].payload.predictedSec, 900);
+    });
+  });
 
   await atest('a finish recorded while the pull is in flight is not wiped by the snapshot', async () => {
     setDb({ 1: { racers: [racer('a', 1, 'Ana', 600, { wave: 1 })], waveStarts: { 1: T }, wavesLocked: true } });

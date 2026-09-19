@@ -291,6 +291,27 @@ var ACTIONS = {
     setCell_('Racers', row, 'finishAt', Number(body.finishAt));
   },
 
+  /* An organiser correcting a call on the race control page. Idempotent by nature: the
+     payload carries the whole new value, so a retry writes the same cell twice.
+
+     The wave column is deliberately left alone. Before the first gun it is empty and the
+     client regroups from predicted times on every render; after the gun it is locked and
+     nobody moves. Either way, a wave is not something this action decides. */
+  setPredictedTime: function (body) {
+    var race = raceOf_(body);
+    var sec = Number(body.predictedSec);
+    /* This endpoint is deployed "Anyone", so a payload is not trusted because it reached
+       us. A NaN or a negative written here comes back through doGet() as a broken call and
+       spreads to every delta, the leaderboard and all five series totals. Refuse it: a
+       refusal is reported to the device, a corrupted cell is not. */
+    if (!(sec >= 0 && sec <= 35999) || Math.floor(sec) !== sec) {
+      throw new Error('Bad predicted time: ' + body.predictedSec);
+    }
+    var row = findRowWhere_('Racers', { race: race, id: body.id });
+    if (!row) throw new Error('No racer ' + body.id + ' in race ' + race);
+    setCell_('Racers', row, 'predictedSec', sec);
+  },
+
   unfinish: function (body) {
     var row = findRowWhere_('Racers', { race: raceOf_(body), id: body.id });
     if (row) setCell_('Racers', row, 'finishAt', '');

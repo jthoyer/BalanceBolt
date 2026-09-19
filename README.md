@@ -16,7 +16,7 @@ not a picture of one.
 | Page | Who has it open | What is on it |
 |---|---|---|
 | **`index.html`** | The sign-up table, a phone passed around | Name, predicted minutes and seconds, confirmation of race number and wave, the start list |
-| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
+| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, an Edit call button on each racer, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
 | **`admin.html`** | Whoever is setting up on the day | A splash with one button to each of the two pages above — nothing else |
 
 `index.html` and `boltresults.html` are **independent — neither links to the other**.
@@ -45,16 +45,23 @@ being passed around can do on its own.
    remain, so one wave may span more than five minutes. The grouping
    recalculates as people sign up and freezes the moment the first wave starts. Anyone
    who signs up after that joins the next wave still waiting on the line.
-3. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
+3. **Fixing a call** — a mistyped prediction is corrected on `boltresults.html` →
+   **Timing**, with **Edit call** on the racer's row. Before the first gun that re-buckets
+   them into the wave they now belong in — and can move whoever was closest to them, since
+   the five-minute groups are drawn off the whole field. After it, waves are locked and only
+   the time they are measured against changes, which is what makes a post-race correction
+   possible at all. The sign-up sheet cannot do this: it is a phone passed hand to hand at
+   the start line, and its start list is deliberately read-only.
+4. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
    and its own clock. The race clock at the top runs from the first gun and stays stuck
    to the top of the screen while you scroll.
-4. **Finish** — stop each racer's clock individually as they cross, either with the
+5. **Finish** — stop each racer's clock individually as they cross, either with the
    Finish button on their row or by typing their number into **Finish by number**. The
    global clock and every other wave keep running.
-5. **Last one home** — when the final racer's clock is stopped, the race clock *and*
+6. **Last one home** — when the final racer's clock is stopped, the race clock *and*
    every wave clock stop together, frozen on that instant. Nothing on the page carries
    on counting once the race is over. Undo a finish and they all start running again.
-6. **Results** — the leaderboard updates live, ranked by the gap between actual and
+7. **Results** — the leaderboard updates live, ranked by the gap between actual and
    predicted time, shown in minutes and seconds.
 
 ## The series

@@ -110,6 +110,8 @@ states need 3:1.
 | `--line` on `#ffffff` | 1.34 | Decorative card and panel edges. Carries no state and no affordance; the content inside identifies the card. |
 | `#eff1f4` row dividers on `#ffffff` | 1.13 | Decorative separators between list rows. |
 | `#e0c07a` on `#ffffff` (adhoc prize tint) | 1.75 | Decorative tint. The card is identified by its heading, not its border. |
+| `#eef0f4` (Cancel fill) on `--canvas` (call editor) | 1.07 | A `.secondary-button` sitting on the editor's own `--canvas` surface. Identified by its `--line-strong` border, which measures 3.54 against that surface and 3.30 against its own fill. |
+| `--navy-bg` hover fill on `#ffffff` | 1.12 | `.quiet-button.neutral:hover`. A hover tint, not a state anyone has to see; the button is identified by its `--ink` border at 15.19 and its `--ink` label at 13.55. |
 | `--yellow` fill against `--canvas` | 1.52 | The primary button is identified by its `--ink` label at 9.41:1. WCAG 1.4.11 does not require a boundary when the component is identifiable another way. |
 
 **Never do this** (both were live bugs, now fixed):
@@ -171,7 +173,8 @@ Rules:
 - One shadow in the whole system: `0 8px 24px rgba(18,31,55,.12)` on the sticky race
   clock, and only while it is stuck (phones). Everything else is flat.
 - Tap targets: `--tap` 48px for primary controls, `--tap-min` 44px is the floor and
-  nothing goes below it — including low-emphasis buttons like Undo and Take it back.
+  nothing goes below it — including low-emphasis buttons like Edit call, Undo and Take
+  it back.
 
 ---
 
@@ -236,9 +239,39 @@ it in words:
 - `.done` → `--slate`, shows the final clock
 
 ### Timing row (`.timing-row`)
-One racer during a race: bib, name, "called 25:00", then either a live clock plus a
-**Finish** button, or the elapsed time, the delta and an **Undo** button. It wraps on
-narrow phones with the action staying on the thumb side (`margin-left: auto`).
+One racer during a race: bib, name, "called 25:00", an **Edit call** button, then either a
+live clock plus a **Finish** button, or the elapsed time, the delta and an **Undo** button.
+It wraps on narrow phones with the action staying on the thumb side (`margin-left: auto`).
+
+**Edit call sits with the call, not with the action.** It carries its own
+`margin-right: auto`, so the two auto margins share the row's free space and leave it
+against the name while the clock and Finish stay on the right edge — and on a narrow phone
+the row wraps between them. That placement is deliberate: Finish is the one control in this
+app that must never be pressed by accident, so nothing else is parked beside it. The same
+reasoning removed the per-racer Remove button from the sign-up sheet's start list.
+
+### Call editor (`.timing-edit`)
+The form Edit call opens: a `.time-field` fieldset with the same Minutes / Seconds
+`.two-columns` pair the sign-up form uses, one line of `.helper-text`, a `.form-error`, and
+a `.dialog-footer` holding **Cancel** (`.secondary-button`) and **Save the call**
+(`.save-button`). Race control only — `index.html` has no editing on it at all.
+
+`flex-basis: 100%` drops it onto its own line *inside* the timing row, the same trick
+`.start-button` uses inside `.wave-bar`, so the form never squeezes the clock sideways. From
+700px up the two boxes are capped at 150px each, the way the race picker caps its five
+options — a field that holds three digits should not be half the shell wide.
+
+**The open editor is state, not DOM.** `renderControl()` rebuilds the whole wave list and
+the sheet poll calls it every `POLL_MS`, so an editor that existed only in the DOM would be
+snatched away mid-correction. `results.js` holds `callEdit = { id, minutes, seconds, error }`
+and the render puts the form back exactly as it was; `data-focus-key` on both boxes lets
+`keepFocus()` return the caret to the one that had it. One row is open at a time.
+
+**The helper line states the consequence before the button is pressed**, because it differs:
+before the first gun the edit can re-bucket the racer *and a neighbour*, since the
+five-minute groups are drawn off the whole field; after `wavesLocked` the wave is fixed and
+only the time they are measured against changes; and if they are already home, the
+leaderboard moves under them.
 
 ### Bib badge (`.bib`)
 Pill on `--navy-bg` with the race number, tabular. Always rendered with a
@@ -316,7 +349,8 @@ ranking implied between the two jobs.
 | `.finish-button` | Stop one racer's clock | `--ink` fill, 48px |
 | `.secondary-button` | Admin actions | `#eef0f4` fill, `--line-strong` border |
 | `.secondary-button.danger` | Destructive | `--red-bg` fill, `--red` border and label |
-| `.quiet-button` | Undo / Take it back | White, `--line-strong` border, 44px |
+| `.quiet-button` | Edit call / Undo / Take it back | White, `--line-strong` border, 44px |
+| `.quiet-button.neutral` | Same, where the action is **not** a reversal or a removal (Edit call) | As above, but the hover is `--ink` / `--navy-bg` instead of red |
 | `.text-button` | Header-only, low weight | Transparent, `--muted` |
 
 Full-width on phones, `width: auto` from 700px up.
@@ -395,9 +429,19 @@ through `#announcer`.
 **Focus survives re-rendering.** Rendering replaces DOM, which would drop focus every
 time someone presses Finish. Buttons that survive a render under a different name
 carry `data-focus-key`, and `keepFocus()` moves focus to the same key afterwards — so
-Finish → Undo → Finish keeps you in the same row. Where an element genuinely
-disappears (Start wave, Take it back) the handler decides explicitly where
-focus goes next. Never let focus fall back to `<body>`.
+Finish → Undo → Finish keeps you in the same row. The call editor's two boxes carry one
+too, so the four-second poll cannot rebuild the form out from under someone typing in it.
+Where an element genuinely disappears (Start wave, Take it back, and the editor on Save,
+Cancel or `Escape`) the handler decides explicitly where focus goes next — the editor hands
+it back to the Edit call button that opened it. Never let focus fall back to `<body>`.
+
+**Move focus after the render, never during it.** `renderControl()` builds a row and its
+editor detached and appends the finished wave block afterwards, and `.focus()` on a node
+that is not in the document yet does nothing and reports nothing. Every explicit focus move
+therefore runs *after* `render()` returns and re-queries the DOM for its target. Redrawing a
+validation error is the case that has to be split: `showFieldError(..., { moveFocus: false })`
+rewires the ARIA on every render, and only the one render that follows a failed save moves
+the caret.
 
 **Errors.** Each form error is a `role="alert"` paragraph. On failure the offending
 field gets `aria-invalid="true"` and the error's id appended to its
@@ -422,8 +466,10 @@ controls, 16px form inputs, 320px reflow with no horizontal scroll.
 
 **Text alternatives.** The logo's `alt` is the club name. Decorative glyphs (`+`, `★`,
 `→`, `↗`) are `aria-hidden="true"` so they are not read as words. Icon-free buttons
-whose visible text is ambiguous in isolation ("Undo", "Finish", "Take it back") get an
-`aria-label` naming the racer.
+whose visible text is ambiguous in isolation ("Edit call", "Undo", "Finish", "Take it
+back") get an `aria-label` naming the racer — Edit call's also states the time it is about
+to change, since "edit" alone does not say what. A disclosure button carries `aria-expanded`,
+and `aria-controls` only while the thing it controls exists.
 
 **ARIA is a last resort.** Radios for the race picker, `<fieldset>`/`<legend>` for
 groups, `<th scope>` for tables, real `<button>`s and `<a>`s. `role="tab"` and

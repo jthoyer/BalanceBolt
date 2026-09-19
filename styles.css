@@ -246,6 +246,9 @@ a.primary-button, a.secondary-button, a.save-button {
   font: 700 13px "DM Sans", sans-serif; cursor: pointer;
 }
 .quiet-button:hover { border-color: var(--red); background: var(--red-bg); color: var(--red) }
+/* For a quiet button that neither reverses nor removes anything — Edit call. The hover
+   above is a red warning, which on a button that only opens a form is a lie. */
+.quiet-button.neutral:hover { border-color: var(--ink); background: var(--navy-bg); color: var(--ink) }
 
 .confirm-card { margin: 18px 0; padding: 20px 18px; border-radius: 9px; background: var(--green); color: #fff }
 .confirm-line { margin: 0; font: 700 22px Outfit, sans-serif; letter-spacing: -.4px }
@@ -330,6 +333,24 @@ a.primary-button, a.secondary-button, a.save-button {
   font: 700 15px "DM Sans", sans-serif; cursor: pointer;
 }
 .finish-button[disabled] { background: #eef0f4; color: var(--muted) }
+
+/* Edit call sits with the call it changes, hard against the bib and the name, not in the
+   thumb-side cluster: Finish is the one control in this app that must never be pressed by
+   accident, so nothing else is parked next to it. The auto margin here and the one on
+   .timing-result share the free space between them, which puts the time and its button on
+   the right edge and this button on the left — and keeps both when the row wraps. */
+.timing-row > .quiet-button { margin-right: auto }
+
+/* Correcting one racer's call. Drops onto its own line inside the row — the same
+   flex-basis trick .start-button uses inside the wave bar — so the form never squeezes
+   the clock or the Finish button sideways. */
+.timing-edit {
+  flex-basis: 100%;
+  margin: 4px 0 6px; padding: 14px 16px;
+  border: 1px solid var(--line-strong); border-radius: 9px; background: var(--canvas);
+}
+.timing-edit .time-field { margin: 0 }        /* the form's own padding already spaces it */
+.timing-edit .dialog-footer { margin-top: 16px }
 
 .danger-zone { margin: 32px 0 24px; padding: 20px 18px; border: 1px dashed var(--line-strong); border-radius: 9px }
 .danger-zone h2 { margin: 0 0 6px; font-family: Outfit, sans-serif; font-size: 20px }
@@ -477,6 +498,9 @@ select:focus-visible,
   .wave-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
   .wave-bar { gap: 18px; padding: 16px 20px; flex-wrap: nowrap }
   .start-button { flex-basis: auto; min-height: 52px }
+  /* Two boxes that hold at most three digits do not need half the shell — capped the same
+     way the race picker caps its five options, so they read as fields, not as panels. */
+  .timing-edit .two-columns { grid-template-columns: repeat(2, minmax(0, 150px)) }
   .wave-body { padding: 6px 20px 16px }
   .wave-clock { font-size: 30px }
 

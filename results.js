@@ -120,6 +120,9 @@ function timingRow(r, v, start) {
   row.innerHTML = '<span class="timing-result"></span>';
   row.prepend(rosterWho(r));
 
+  row.insertBefore(editCallButton(r), row.querySelector('.timing-result'));
+  if (callEdit && callEdit.id === r.id) row.append(callEditForm(r, v));
+
   const cell = row.querySelector('.timing-result');
   const res = result(r, v);
 
@@ -171,6 +174,198 @@ function timingRow(r, v, start) {
     cell.append(btn);
   }
   return row;
+}
+
+/* ── Correcting a call ─────────────────────────────────────────────────── */
+
+/* One row at a time is open for editing, and the open editor is state, not DOM.
+   It has to be: renderControl() throws the whole wave list away and rebuilds it, and
+   the sheet poll calls render() every few seconds, so a form that existed only in the
+   DOM would be snatched away mid-correction — the same trap the confirmation card on
+   the sign-up page is written around. Keeping what has been typed here means the
+   rebuild puts the form back exactly as it was, and data-focus-key on the two boxes
+   lets keepFocus() drop the caret back into the one that had it.
+
+   Shape: { id, minutes, seconds, error: { message, field } | null }. */
+let callEdit = null;
+
+/** The trigger on a racer's row. Sits with the call it changes — see below. */
+function editCallButton(r) {
+  const open = !!callEdit && callEdit.id === r.id;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  /* .neutral because this is not a reversal and not a removal: the plain .quiet-button
+     hover goes red, which on Edit call would promise something the button does not do. */
+  btn.className = 'quiet-button neutral';
+  btn.dataset.focusKey = `call:${r.id}`;
+  btn.textContent = 'Edit call';
+  btn.setAttribute('aria-label', `Edit the predicted time for ${r.name}, currently ${fmtSec(r.predictedSec)}`);
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) btn.setAttribute('aria-controls', callEditIds(r).form);
+  btn.addEventListener('click', () => (open ? closeCallEdit(r.id) : openCallEdit(r)));
+  return btn;
+}
+
+/* Ids are built off the race NUMBER, not the id: `number` is coerced through Number()
+   in cleanRace(), so it cannot carry anything that would break out of an attribute.
+   `id` is a string off the sheet and only ever goes into dataset or a CSS.escape(). */
+const callEditIds = r => ({
+  form: `callEdit-${r.number}`,
+  minutes: `callMinutes-${r.number}`,
+  seconds: `callSeconds-${r.number}`,
+  help: `callHelp-${r.number}`,
+  error: `callError-${r.number}`
+});
+
+function openCallEdit(r) {
+  callEdit = {
+    id: r.id,
+    minutes: String(Math.floor(r.predictedSec / 60)),
+    seconds: String(r.predictedSec % 60),
+    error: null
+  };
+  render();
+  focusCallBox(r.id, 'minutes');
+}
+
+/* Focus is moved AFTER render(), never during it. renderControl() builds each row and
+   its editor detached and appends the finished wave block afterwards, and .focus() on a
+   node that is not in the document yet does nothing at all — silently. That cost the
+   error path its "land on the box you have to fix" behaviour until a browser check caught
+   it; reading the code did not, because the focus call was plainly there. */
+function focusCallBox(id, field) {
+  focusByKey(`${field === 'seconds' ? 'call-sec' : 'call-min'}:${id}`);
+}
+
+/** Back to the Edit call button that opened the editor — the one place focus can go. */
+const focusCallTrigger = id => focusByKey(`call:${id}`);
+
+function focusByKey(key) {
+  const el = document.querySelector(`[data-focus-key="${CSS.escape(key)}"]`);
+  if (el) el.focus();
+}
+
+/** The form is about to disappear, so this decides where focus lands: back on the trigger. */
+function closeCallEdit(id) {
+  callEdit = null;
+  render();
+  focusCallTrigger(id);
+}
+
+function failCallEdit(message, field) {
+  callEdit.error = { message, field };
+  const id = callEdit.id;
+  render();
+  focusCallBox(id, field);
+}
+
+function saveCallEdit(r) {
+  const state = callEdit;
+  const parsed = parsePredictedTime(state.minutes, state.seconds);
+  if (!parsed.ok) return failCallEdit(parsed.error, parsed.field);
+
+  /* Closed before the mutation, so setPredictedTime's own render draws the tidied row
+     and there is no second rebuild to undo the first. */
+  callEdit = null;
+  const outcome = setPredictedTime(r.id, parsed.predictedSec);
+  if (!outcome.ok) {
+    callEdit = state;
+    return failCallEdit(outcome.error, 'minutes');
+  }
+
+  focusCallTrigger(r.id);
+
+  /* Before the first gun the wave is still fluid, so it is hedged the same way the
+     sign-up confirmation hedges it. Stating a fluid wave as settled is a promise the
+     app cannot keep. */
+  announce(`${outcome.racer.name}'s call is now ${fmtSec(parsed.predictedSec)}. `
+    + (outcome.locked ? `Wave ${outcome.wave}, unchanged.` : `Wave ${outcome.wave} for now.`));
+}
+
+function callEditForm(r, v) {
+  const state = callEdit;
+  const id = callEditIds(r);
+  const form = document.createElement('form');
+  form.className = 'timing-edit';
+  form.id = id.form;
+  form.noValidate = true;
+  form.innerHTML = `
+    <fieldset class="time-field">
+      <legend></legend>
+      <div class="two-columns">
+        <span class="field">
+          <label for="${id.minutes}">Minutes</label>
+          <input id="${id.minutes}" name="minutes" type="number" inputmode="numeric" min="0" max="599" step="1" placeholder="0" aria-describedby="${id.help}" />
+        </span>
+        <span class="field">
+          <label for="${id.seconds}">Seconds</label>
+          <input id="${id.seconds}" name="seconds" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" aria-describedby="${id.help}" />
+        </span>
+      </div>
+      <p class="helper-text" id="${id.help}"></p>
+    </fieldset>
+    <p class="form-error hidden" id="${id.error}" role="alert"></p>
+    <div class="dialog-footer">
+      <button type="button" class="secondary-button">Cancel</button>
+      <button type="submit" class="save-button">Save the call</button>
+    </div>`;
+
+  /* Racer names come off a sheet anybody with the sign-up link can write to, so they go
+     in as text, never as markup — same rule the roster and the board follow. */
+  form.querySelector('legend').textContent = `New predicted time for ${r.name}`;
+  form.querySelector('.helper-text').textContent = callEditHelp(r, v);
+
+  const minutes = form.querySelector('input[name="minutes"]');
+  const seconds = form.querySelector('input[name="seconds"]');
+  const err = form.querySelector('.form-error');
+
+  minutes.value = state.minutes;
+  seconds.value = state.seconds;
+  minutes.dataset.focusKey = `call-min:${r.id}`;
+  seconds.dataset.focusKey = `call-sec:${r.id}`;
+
+  [minutes, seconds].forEach(box => {
+    box.addEventListener('input', () => {
+      if (callEdit !== state) return; // a poll rebuilt the form; this one is a ghost
+      state.minutes = minutes.value;
+      state.seconds = seconds.value;
+      if (box.getAttribute('aria-invalid') === 'true') {
+        state.error = null;
+        clearFieldErrors(err, [minutes, seconds]);
+      }
+    });
+  });
+
+  /* Wires the ARIA and shows the message, but never moves the caret: this runs on every
+     render, including the four-second sheet poll, and nothing should yank focus out of the
+     box someone is mid-way through correcting. failCallEdit() does the one focus move
+     there is, after the row is in the document. */
+  if (state.error) {
+    const target = state.error.field === 'seconds' ? seconds : minutes;
+    showFieldError(err, state.error.message, target, { moveFocus: false });
+  }
+
+  form.addEventListener('submit', e => { e.preventDefault(); saveCallEdit(r); });
+  form.querySelector('.secondary-button').addEventListener('click', () => closeCallEdit(r.id));
+  /* Opened the wrong row is the common mistake, so the common escape hatch works. Not a
+     dialog and nothing is trapped here — this is a convenience, not the only way out. */
+  form.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    closeCallEdit(r.id);
+  });
+  return form;
+}
+
+/** What changing this call is about to do — stated before it is pressed, not after. */
+function callEditHelp(r, v) {
+  return [
+    'Leave a box empty and we count it as zero.',
+    v.data.wavesLocked
+      ? `Waves are locked in, so wave ${v.map.get(r.id)} stays wave ${v.map.get(r.id)}.`
+      : 'Waves have not locked yet, so this can move them — and whoever is closest to them — into a different wave.',
+    r.finishAt ? 'They are already home, so their result on the board changes too.' : ''
+  ].filter(Boolean).join(' ');
 }
 
 function announceFinish({ racer, res }) {

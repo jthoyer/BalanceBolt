@@ -146,6 +146,49 @@ for (const [script, page] of PAGES) {
   }
 }
 
+/* ── Sheet actions ──────────────────────────────────────────────────────── */
+
+/* The other dangling-reference class, and it fails more quietly than a missing element.
+   Every mutation in core.js calls queue('action', …); doPost() in apps-script.gs looks
+   that name up in ACTIONS and throws "Unknown action" on a miss. sync() reads a throw
+   from the sheet as a refusal rather than a dropped signal and shifts it off the queue
+   for good, so a name that exists on only one side means the change sticks on the timing
+   phone, never reaches the sheet, and is replaced by the old value on the next pull.
+   Nothing renders wrong and nothing errors on screen — it is a console warning and a
+   corrupted result. Static, like the check above: no DOM, no network, no Apps Script. */
+const coreSrc = read('core.js');
+const gsSrc = read('apps-script.gs');
+
+const queuedActions = [...new Set(
+  [...coreSrc.matchAll(/\bqueue\(\s*'([A-Za-z0-9_]+)'/g)].map(m => m[1])
+)];
+const handledActions = new Set(
+  [...gsSrc.matchAll(/^\s{2}([A-Za-z0-9_]+):\s*function\s*\(/gm)].map(m => m[1])
+);
+
+const actionChecks = queuedActions.map(action => {
+  const ok = handledActions.has(action);
+  return {
+    group: 'sheet actions',
+    name: `core.js queues '${action}', which apps-script.gs handles`,
+    ok,
+    err: ok ? '' : `queue('${action}', …) is called in core.js but ACTIONS in apps-script.gs has no\n`
+      + `'${action}' handler, so doPost() will throw "Unknown action: ${action}".\n`
+      + `sync() treats that as a refusal and drops the change permanently: it stays correct\n`
+      + `on this device and never reaches the sheet. Add the handler, or fix the name.`
+  };
+});
+
+// A guard on the guard: if neither pattern matches any more, the check above is decoration.
+actionChecks.push({
+  group: 'sheet actions',
+  name: 'both sides of that check actually found something to compare',
+  ok: queuedActions.length > 0 && handledActions.size > 0,
+  err: `Found ${queuedActions.length} queued action(s) and ${handledActions.size} handler(s).\n`
+    + `A zero on either side means the regex stopped matching the code rather than the code\n`
+    + `being clean — fix the pattern in run-tests.mjs.`
+});
+
 /* ── Report ─────────────────────────────────────────────────────────────── */
 
 const out = sandbox.__TEST_RESULTS__;
@@ -154,11 +197,12 @@ if (!out) {
   process.exit(1);
 }
 
-const wiringFailed = pageChecks.filter(c => !c.ok).length;
-out.results = [...pageChecks, ...out.results];
-out.total += pageChecks.length;
-out.passed += pageChecks.length - wiringFailed;
-out.failed += wiringFailed;
+const staticChecks = [...pageChecks, ...actionChecks];
+const staticFailed = staticChecks.filter(c => !c.ok).length;
+out.results = [...staticChecks, ...out.results];
+out.total += staticChecks.length;
+out.passed += staticChecks.length - staticFailed;
+out.failed += staticFailed;
 
 const dim = s => `\x1b[2m${s}\x1b[0m`;
 const red = s => `\x1b[31m${s}\x1b[0m`;
