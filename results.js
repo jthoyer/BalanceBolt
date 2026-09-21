@@ -8,10 +8,25 @@ function currentView() {
   return VIEWS.includes(ui.resultsView) ? ui.resultsView : 'timing';
 }
 
+/** ?view=series on the URL picks the starting tab, same idea as ?race=N in core.js —
+    lets another page (the club calendar) deep-link straight past Timing. */
+function initialView() {
+  const fromUrl = new URLSearchParams(location.search).get('view');
+  return VIEWS.includes(fromUrl) ? fromUrl : currentView();
+}
+
+/** Keep ?view= in the address bar so a screen can be parked on one tab, same as ?race=. */
+function reflectViewInUrl(view) {
+  const url = new URL(location.href);
+  url.searchParams.set('view', view);
+  history.replaceState(null, '', url);
+}
+
 function showView(view, { moveFocus = true } = {}) {
   if (!VIEWS.includes(view)) return;
   ui.resultsView = view;
   save();
+  reflectViewInUrl(view);
   renderTabs(view);
   if (moveFocus) $('#view-' + view).focus();
 }
@@ -667,5 +682,5 @@ $('#resetRaceButton').addEventListener('click', () => {
 });
 
 renderPage = render;
-showView(currentView(), { moveFocus: false });
+showView(initialView(), { moveFocus: false });
 boot();
