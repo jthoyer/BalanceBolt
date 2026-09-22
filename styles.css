@@ -257,6 +257,9 @@ a.primary-button, a.secondary-button, a.save-button {
    above is a red warning, which on a button that only opens a form is a lie. */
 .quiet-button.neutral:hover { border-color: var(--ink); background: var(--navy-bg); color: var(--ink) }
 a.quiet-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none }
+/* Same shape as .quiet-button, filled — for a quiet button that is still worth a little emphasis. */
+.quiet-button.gold { border-color: transparent; background: var(--yellow); color: var(--ink) }
+.quiet-button.gold:hover { background: #e4b449 }
 
 .confirm-card { margin: 18px 0; padding: 20px 18px; border-radius: 9px; background: var(--green); color: #fff }
 .confirm-line { margin: 0; font: 700 22px Outfit, sans-serif; letter-spacing: -.4px }
