@@ -274,7 +274,7 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
   border: 1px solid var(--line); border-radius: 9px; background: #fff;
 }
 .donation-callout-image {
-  flex-shrink: 0; width: 176px; height: 60px;
+  flex-shrink: 0; width: 235px; height: 60px;
   border-radius: 9px; object-fit: cover;
 }
 .donation-callout-body { flex-grow: 1; min-width: 0 }
