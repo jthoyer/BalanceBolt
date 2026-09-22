@@ -256,6 +256,7 @@ a.primary-button, a.secondary-button, a.save-button {
 /* For a quiet button that neither reverses nor removes anything — Edit call. The hover
    above is a red warning, which on a button that only opens a form is a lie. */
 .quiet-button.neutral:hover { border-color: var(--ink); background: var(--navy-bg); color: var(--ink) }
+a.quiet-button { display: inline-flex; align-items: center; justify-content: center; text-decoration: none }
 
 .confirm-card { margin: 18px 0; padding: 20px 18px; border-radius: 9px; background: var(--green); color: #fff }
 .confirm-line { margin: 0; font: 700 22px Outfit, sans-serif; letter-spacing: -.4px }
@@ -279,7 +280,6 @@ a.primary-button, a.secondary-button, a.save-button {
   font: 700 11px "DM Sans", sans-serif; letter-spacing: .9px; text-transform: uppercase;
 }
 .donation-callout-line { margin: 0; font: 600 15px/1.4 "DM Sans", sans-serif }
-.donation-callout-link { flex-shrink: 0 }
 
 /* ── Start list ──────────────────────────────────────────── */
 .wave-grid { display: grid; gap: 12px }
