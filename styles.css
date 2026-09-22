@@ -269,12 +269,12 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
 
 /* ── Donation callout ────────────────────────────────────── */
 .donation-callout {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
   margin: 20px 0 0; padding: 16px 18px;
   border: 1px solid var(--line); border-radius: 9px; background: #fff;
 }
 .donation-callout-image {
-  flex-shrink: 0; width: 88px; height: 60px;
+  flex-shrink: 0; width: 176px; height: 60px;
   border-radius: 9px; object-fit: cover;
 }
 .donation-callout-body { flex-grow: 1; min-width: 0 }
@@ -283,6 +283,8 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
   font: 700 11px "DM Sans", sans-serif; letter-spacing: .9px; text-transform: uppercase;
 }
 .donation-callout-line { margin: 0; font: 600 15px/1.4 "DM Sans", sans-serif }
+.donation-callout-line a { color: inherit; text-decoration: underline }
+.donation-callout-line a:hover { text-decoration: none }
 
 /* ── Start list ──────────────────────────────────────────── */
 .wave-grid { display: grid; gap: 12px }
@@ -524,6 +526,8 @@ select:focus-visible,
   html { scroll-padding: 8px 0 24px }
   body.has-thumb-bar { padding-bottom: 0 }
   .shell { width: min(1100px, calc(100% - 40px)) }
+
+  .donation-callout { flex-direction: row; align-items: center }
 
   .topbar { min-height: 112px }
   .brand-logo { height: 80px }
