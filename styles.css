@@ -283,6 +283,8 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
   font: 700 11px "DM Sans", sans-serif; letter-spacing: .9px; text-transform: uppercase;
 }
 .donation-callout-line { margin: 0; font: 600 15px/1.4 "DM Sans", sans-serif }
+.donation-callout-line a { color: inherit; text-decoration: underline }
+.donation-callout-line a:hover { text-decoration: none }
 
 /* ── Start list ──────────────────────────────────────────── */
 .wave-grid { display: grid; gap: 12px }
