@@ -263,6 +263,24 @@ a.primary-button, a.secondary-button, a.save-button {
 .confirm-detail a { color: #fff; font-weight: 700; text-decoration: underline }
 .confirm-detail a:hover { text-decoration: none }
 
+/* ── Donation callout ────────────────────────────────────── */
+.donation-callout {
+  display: flex; align-items: center; gap: 14px;
+  margin: 20px 0 0; padding: 16px 18px;
+  border: 1px solid var(--line); border-radius: 9px; background: #fff;
+}
+.donation-callout-image {
+  flex-shrink: 0; width: 88px; height: 60px;
+  border-radius: 9px; object-fit: cover;
+}
+.donation-callout-body { flex-grow: 1; min-width: 0 }
+.donation-callout-label {
+  margin: 0; color: var(--muted);
+  font: 700 11px "DM Sans", sans-serif; letter-spacing: .9px; text-transform: uppercase;
+}
+.donation-callout-line { margin: 0; font: 600 15px/1.4 "DM Sans", sans-serif }
+.donation-callout-link { flex-shrink: 0 }
+
 /* ── Start list ──────────────────────────────────────────── */
 .wave-grid { display: grid; gap: 12px }
 .wave-card { border: 1px solid var(--line); border-radius: 9px; background: #fff; overflow: hidden }
