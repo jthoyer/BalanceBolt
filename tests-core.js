@@ -164,7 +164,7 @@ globalThis.__TESTS_DONE__ = (async function () {
   group('cleanRace / cleanDb — junk in, known shape out');
 
   test('cleanRace turns null, undefined and rubbish into an empty race', () => {
-    const expected = { racers: [], waveStarts: {}, wavesLocked: false, prizes: [] };
+    const expected = { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] };
     eq(cleanRace(null), expected);
     eq(cleanRace(undefined), expected);
     eq(cleanRace('nonsense'), expected);
@@ -205,7 +205,7 @@ globalThis.__TESTS_DONE__ = (async function () {
     const out = cleanDb({ races: { 1: { racers: [] } } });
     eq(Object.keys(out.races).length, 5, 'the series is five races');
     eq(RACE_COUNT, 5, 'and core.js still says so');
-    eq(out.races[5], { racers: [], waveStarts: {}, wavesLocked: false, prizes: [] },
+    eq(out.races[5], { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] },
        'the races nobody has entered are filled in, not missing');
   });
 
@@ -232,17 +232,30 @@ globalThis.__TESTS_DONE__ = (async function () {
 
   test('the span is measured from the wave leader, not the previous racer', () => {
     // 600 -> 900 -> 1200: each step is 300s, but 1200 is 600s off the leader.
-    eq(shape(groupByPredicted(field([600, 900, 1200]))), [[600, 900], [1200]],
+    eq(shape(groupByPredicted(field([600, 900, 1200]))), [[1200], [600, 900]],
        'a chain of small steps must not drag one wave arbitrarily wide');
   });
 
   test('exactly five minutes still counts as together', () => {
     eq(shape(groupByPredicted(field([600, 900]))), [[600, 900]], 'the rule is <=, not <');
-    eq(shape(groupByPredicted(field([600, 901]))), [[600], [901]], 'one second past it splits');
+    eq(shape(groupByPredicted(field([600, 901]))), [[901], [600]], 'one second past it splits');
   });
 
-  test('wave 1 is the quickest predictions, whatever order they arrive in', () => {
-    eq(shape(groupByPredicted(field([2000, 600, 1300]))), [[600], [1300], [2000]]);
+  /* Reversed on 2026-09-25: the slowest calls go first so the waves can be timed to come
+     home together. Wave 1 was the quickest calls before that. */
+  test('wave 1 is the slowest predictions and the last wave the quickest, whatever order they arrive in', () => {
+    eq(shape(groupByPredicted(field([2000, 600, 1300]))), [[2000], [1300], [600]]);
+  });
+
+  test('reversing the order does not change who shares a wave', () => {
+    // 600/800 together, 1300/1500 together, 2000 alone — same groups, numbered slowest first.
+    eq(shape(groupByPredicted(field([1500, 600, 2000, 800, 1300]))), [[2000], [1300, 1500], [600, 800]]);
+  });
+
+  test('after the four-wave merge wave 1 still holds the slowest call', () => {
+    const groups = groupByPredicted(field([600, 1000, 1400, 1800, 2200, 2600, 3000]));
+    eq(groups[0].some(r => r.predictedSec === 3000), true, 'the slowest racer is in wave 1');
+    eq(groups[3].some(r => r.predictedSec === 600), true, 'the quickest racer is in the last wave');
   });
 
   /* The 4 below is deliberately a literal, not MAX_WAVES. Asserting a constant
@@ -288,8 +301,8 @@ globalThis.__TESTS_DONE__ = (async function () {
   test('waves stay fluid until the first gun', () => {
     const list = field([600, 1400]);
     const map = buildWaveMap({ wavesLocked: false, racers: list, waveStarts: {} }, list);
-    eq(map.get('r0'), 1);
-    eq(map.get('r1'), 2, 'regrouped by predicted time, ignoring any stored wave');
+    eq(map.get('r1'), 1, 'the slower call is wave 1');
+    eq(map.get('r0'), 2, 'regrouped by predicted time, ignoring any stored wave');
   });
 
   test('once locked, the stored wave wins even if predictions changed', () => {
@@ -303,6 +316,148 @@ globalThis.__TESTS_DONE__ = (async function () {
     const list = [racer('a', 1, 'A', 600, { wave: 1 }), racer('late', 2, 'Late', 600)];
     const map = buildWaveMap({ wavesLocked: true, racers: list, waveStarts: { 1: T } }, list);
     eq(map.get('late'), 1, 'wave 1 has already fired, so it is also the last known wave');
+  });
+
+  /* ═══ Wave targets ══════════════════════════════════════════════════════ */
+
+  group('waveTargets — sending each wave off so they come home together');
+
+  /** A race with one wave per entry of `waves` (arrays of calls in seconds), wave 1 first. */
+  function wavedb(waves, waveStarts = {}) {
+    let n = 0;
+    const racers = [];
+    waves.forEach((calls, i) => calls.forEach(sec => {
+      n += 1;
+      racers.push(racer('r' + n, n, 'Racer ' + n, sec, { wave: i + 1 }));
+    }));
+    setDb({ 1: { racers, waveStarts, wavesLocked: true } });
+    return raceView(1);
+  }
+
+  test('a wave is steered by its median call', () => {
+    eq(waveCallSec([racer('a', 1, 'A', 2000), racer('b', 2, 'B', 1700), racer('c', 3, 'C', 1800)]), 1800, 'odd count: the middle one');
+    eq(waveCallSec([racer('a', 1, 'A', 600), racer('b', 2, 'B', 661)]), 631, 'even count: mean of the middle two, rounded');
+    eq(waveCallSec([]), null, 'an empty wave has no call');
+  });
+
+  test('before the first gun each wave gets a planned gap after wave 1, and no time yet', () => {
+    const v = wavedb([[1800], [1200], [600]]);
+    const t = waveTargets(v);
+    eq(t.has(1), false, 'wave 1 is the anchor, not a target');
+    eq(t.get(2), { anchor: 1, offsetMs: 600000, at: null });
+    eq(t.get(3), { anchor: 1, offsetMs: 1200000, at: null });
+  });
+
+  test('once wave 1 goes, each target is the gun plus the difference in median calls', () => {
+    const v = wavedb([[1700, 1800, 2000], [600, 660]], { 1: T });
+    eq(waveTargets(v).get(2).at, T + (1800 - 630) * 1000);
+  });
+
+  test('every target lands the wave\'s median call on the same finish instant', () => {
+    const v = wavedb([[3000, 3100], [2000], [1400, 1500, 1700], [600]], { 1: T });
+    const finish1 = T + waveCallSec(racersInWave(v, 1)) * 1000;
+    waveTargets(v).forEach((target, wave) => {
+      eq(target.at + waveCallSec(racersInWave(v, wave)) * 1000, finish1, 'wave ' + wave);
+    });
+  });
+
+  test('a late start is not passed down the line — every target stays on the first gun', () => {
+    // Wave 2 was due at T+15:00 and went 40s late; wave 3 is still due at T+30:00.
+    const v = wavedb([[2400], [1500], [600]], { 1: T, 2: T + 940000 });
+    const t = waveTargets(v);
+    eq(t.has(2), false, 'a started wave has no target');
+    eq(t.get(3).at, T + 1800000);
+    eq(t.get(3).anchor, 1);
+  });
+
+  test('if a later wave goes first, it becomes the anchor and the others are already due', () => {
+    const v = wavedb([[2400], [1500]], { 2: T });
+    const t = waveTargets(v).get(1);
+    eq(t.anchor, 2);
+    eq(t.at, T - 900000, 'wave 1 should have gone 15:00 before wave 2');
+    eq(countdownText(t.at, T + 1000), 'Start now');
+  });
+
+  test('a race locked quickest-first, before the order flipped, still gets sensible targets', () => {
+    // Legacy numbering: wave 1 the quick calls. Wave 2 should go before it, so it is due at once.
+    const v = wavedb([[600], [1800]], { 1: T });
+    eq(waveTargets(v).get(2).at, T - 1200000);
+  });
+
+  test('a nudge moves only its own wave', () => {
+    const v = wavedb([[2400], [1500], [600]], { 1: T });
+    const t = waveTargets(v, { 2: 30 });
+    eq(t.get(2).at, T + 900000 + 30000);
+    eq(t.get(3).at, T + 1800000, 'wave 3 ignores wave 2\'s nudge');
+    eq(waveTargets(v, { 3: -60 }).get(3).at, T + 1800000 - 60000, 'and nudges go both ways');
+  });
+
+  test('a wave with nobody left in it has no target and cannot anchor', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'A', 600, { wave: 2 })], waveStarts: { 1: T }, wavesLocked: true } });
+    eq(waveTargets(raceView(1)).size, 0, 'wave 1 is empty, so wave 2 anchors itself and has no target');
+  });
+
+  test('nudges stack, are kept per race, and Reset clears them', () => {
+    wavedb([[2400], [1500]], { 1: T });
+    eq(nudgeWave(2, 30), 30);
+    eq(nudgeWave(2, 30), 60);
+    eq(nudgeWave(2, -90), -30);
+    eq(waveNudges(1), { 2: -30 });
+    eq(waveNudges(2), {}, 'race 2 is untouched');
+    eq(nudgeWave(2, 0), 0);
+    eq(waveNudges(1), {}, 'reset leaves nothing behind');
+  });
+
+  test('nudges are saved with the race, not the UI state, so a reload keeps them', () => {
+    wavedb([[2400], [1500]], { 1: T });
+    nudgeWave(2, 30);
+    eq(JSON.parse(localStorage.getItem(STORE_KEY)).races[1].waveNudges, { 2: 30 });
+    eq(JSON.parse(localStorage.getItem(UI_KEY)).waveNudges, undefined, 'nothing in the UI state');
+  });
+
+  test('a nudge is sent to the sheet as the wave\'s whole new value, so a retry cannot double it', () => {
+    wavedb([[2400], [1500]], { 1: T });
+    const sent = [];
+    queue = function (action, payload) { sent.push({ action, payload }); };
+    try {
+      nudgeWave(2, 30);
+      nudgeWave(2, 30);
+      nudgeWave(2, 0);
+    } finally { queue = noopQueue; }
+    eq(sent.map(o => o.action), ['setWaveNudge', 'setWaveNudge', 'setWaveNudge']);
+    eq(sent.map(o => o.payload.nudgeSec), [30, 60, 0]);
+    eq(sent[0].payload.wave, 2);
+    eq(sent[0].payload.race, 1);
+  });
+
+  test('a nudge from another phone arrives with the sheet and moves this phone\'s countdown', () => {
+    const v = wavedb([[2400], [1500]], { 1: T });
+    eq(waveTargets(v, waveNudges(1)).get(2).at, T + 900000);
+    // The shape doGet() returns: waveNudges keyed by wave, in seconds.
+    db = cleanDb({ races: { 1: { racers: race(1).racers, waveStarts: { 1: T }, waveNudges: { 2: -60 }, wavesLocked: true } } });
+    eq(waveNudges(1), { 2: -60 });
+    eq(waveTargets(raceView(1), waveNudges(1)).get(2).at, T + 900000 - 60000);
+  });
+
+  test('junk nudges off the wire are dropped, not spread into a target', () => {
+    const clean = cleanRace({ waveNudges: { 2: 'abc', 3: 1.5, 0: 30, 4: 0, 5: -30 } });
+    eq(clean.waveNudges, { 5: -30 });
+    eq(cleanRace({}).waveNudges, {}, 'a race saved before nudges existed loads with none');
+  });
+
+  test('resetting the clocks clears that race\'s nudges', () => {
+    wavedb([[2400], [1500]], { 1: T });
+    nudgeWave(2, 30);
+    resetTimes();
+    eq(waveNudges(1), {});
+  });
+
+  test('the countdown rounds up, never shows 0:00, and then says Start now', () => {
+    eq(countdownText(T + 252000, T), '4:12');
+    eq(countdownText(T + 251001, T), '4:12', 'a part-second still to go counts as a second');
+    eq(countdownText(T + 1, T), '0:01');
+    eq(countdownText(T, T), 'Start now');
+    eq(countdownText(T - 5000, T), 'Start now');
   });
 
   /* ═══ Results ═══════════════════════════════════════════════════════════ */
@@ -604,7 +759,7 @@ globalThis.__TESTS_DONE__ = (async function () {
     setDb({ 1: { racers: field([600, 1400]), waveStarts: {}, wavesLocked: false } });
     startWave(1);
     eq(race(1).wavesLocked, true);
-    eq(race(1).racers.map(r => r.wave), [1, 2], 'everyone gets a stored wave, not just wave 1');
+    eq(race(1).racers.map(r => r.wave), [2, 1], 'everyone gets a stored wave, not just wave 1');
   });
 
   test('firing the same wave twice does not move the start time', () => {
@@ -634,7 +789,7 @@ globalThis.__TESTS_DONE__ = (async function () {
       prizes: [{ id: 'p1', label: 'X', racerId: 'a', awardedAt: T }]
     } });
     resetRace();
-    eq(race(1), { racers: [], waveStarts: {}, wavesLocked: false, prizes: [] });
+    eq(race(1), { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] });
   });
 
   test('one race is untouched by changes to another', () => {
@@ -724,27 +879,28 @@ globalThis.__TESTS_DONE__ = (async function () {
   test('before the gun an edited call re-buckets the racer into the right wave', () => {
     // 10:00 and 30:00 are 20 minutes apart, so they start in separate waves.
     setDb({ 1: { racers: [racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 1800)], wavesLocked: false } });
-    eq(raceView(1).map.get('b'), 2, 'Bea starts in her own wave');
+    eq(raceView(1).map.get('b'), 1, 'Bea, the slower call, starts in her own wave 1');
+    eq(raceView(1).map.get('a'), 2);
 
     const out = setPredictedTime('b', 630); // 10:30 — now within five minutes of Ana
     eq(out.wave, 1, 'the returned wave is the one she has just moved to');
-    eq(raceView(1).map.get('b'), 1);
+    eq(raceView(1).map.get('a'), 1, 'and Ana with her');
     eq(raceView(1).waves, [1], 'and the wave she left no longer exists');
   });
 
   test('re-bucketing can take a neighbour with it, because the groups are drawn off the field', () => {
     /* Ana 10:00, Bea 16:00, Cal 22:00 — three groups, nobody within five minutes of
-       anybody. Pulling Bea down to 10:30 leaves Ana+Bea together and Cal on his own, so
-       Cal's wave number changes even though nobody edited Cal. */
+       anybody, numbered slowest first. Pulling Bea down to 10:30 leaves Ana+Bea together
+       and Cal on his own, so Ana's wave number changes even though nobody edited Ana. */
     setDb({ 1: { racers: [
       racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 960), racer('c', 3, 'Cal', 1320)
     ], wavesLocked: false } });
-    eq(raceView(1).map.get('c'), 3);
+    eq(raceView(1).map.get('a'), 3, 'Ana, the quickest call, is the last wave');
 
     setPredictedTime('b', 630);
     const map = raceView(1).map;
-    eq([map.get('a'), map.get('b'), map.get('c')], [1, 1, 2],
-       'Cal is now wave 2 — an edit is not local to the racer it names');
+    eq([map.get('a'), map.get('b'), map.get('c')], [2, 2, 1],
+       'Ana is now wave 2 — an edit is not local to the racer it names');
   });
 
   test('once waves are locked an edited call does NOT move the racer', () => {

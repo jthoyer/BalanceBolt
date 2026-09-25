@@ -37,7 +37,7 @@ function read(key, fallback) {
   } catch { return fallback; }
 }
 
-const emptyRace = () => ({ racers: [], waveStarts: {}, wavesLocked: false, prizes: [] });
+const emptyRace = () => ({ racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] });
 
 function emptyDb() {
   const races = {};
@@ -56,6 +56,12 @@ function cleanRace(src) {
     const at = Number(t);
     if (wave > 0 && at > 0) waveStarts[wave] = at;
   });
+  const waveNudges = {};
+  Object.entries(raw.waveNudges || {}).forEach(([w, sec]) => {
+    const wave = Number(w);
+    const n = Number(sec);
+    if (wave > 0 && Number.isInteger(n) && n !== 0) waveNudges[wave] = n;
+  });
   return {
     racers: (Array.isArray(raw.racers) ? raw.racers : []).map(r => ({
       id: String(r.id),
@@ -66,6 +72,7 @@ function cleanRace(src) {
       finishAt: r.finishAt ? Number(r.finishAt) : null
     })),
     waveStarts,
+    waveNudges,
     wavesLocked: !!raw.wavesLocked,
     prizes: (Array.isArray(raw.prizes) ? raw.prizes : []).map(p => ({
       id: String(p.id),
@@ -255,7 +262,12 @@ function nextOpenWave(data) {
  * Group racers whose predicted times sit within WAVE_SPAN_SEC of each other, so a wave
  * goes off together and comes home together. Walk the field in predicted-time order and
  * start a new wave the moment someone is more than five minutes off the wave's quickest
- * call. Wave 1 is the quickest predictions.
+ * call.
+ *
+ * The groups are then numbered slowest first: wave 1 is the slowest calls and the last
+ * wave the quickest, so the waves can be sent off in number order and — with the
+ * countdown from waveTargets() — come home together rather than strung out. Only the
+ * numbering is reversed; which racers share a wave is exactly what it was.
  *
  * That can produce more than MAX_WAVES groups, and four is a hard cap, so the closest
  * neighbouring groups are merged back together until four remain. Merging the pair with
@@ -282,7 +294,7 @@ function groupByPredicted(list) {
     }
     groups.splice(bestAt, 2, groups[bestAt].concat(groups[bestAt + 1]));
   }
-  return groups;
+  return groups.reverse();
 }
 
 /** Waves stay fluid — and grouped by predicted time — until the first gun goes off. */
@@ -311,6 +323,87 @@ function raceView(n = currentRace) {
 const waveStart = (v, wave) => v.data.waveStarts[wave] ?? null;
 const racersInWave = (v, wave) => v.list.filter(r => v.map.get(r.id) === wave);
 const racerById = (v, id) => v.list.find(r => r.id === id);
+
+/* ── Wave targets: sending each wave off so they all come home together ──
+
+   The call a wave is steered by is its median call — the middle of the wave's finishing
+   band, so the bands overlap centred rather than lining up on one outlier (the four-wave
+   merge can leave a wave more than five minutes wide). A wave with an even count takes
+   the mean of its middle two, rounded to the second.
+
+   Every target is anchored on the FIRST gun — whichever wave actually went first, which is
+   wave 1 in the normal order. A wave aimed to finish with it goes off
+       target = firstGun + (medianCall(first wave) − medianCall(this wave)) + nudge.
+   Anchoring on the first gun rather than the previous wave means an off-target start is
+   never passed down the line: wave 2 going 40s late does not make waves 3 and 4 late too.
+   A nudge is a per-wave manual correction in seconds, applied to that wave only.
+
+   Nothing here starts a wave. These numbers drive a countdown; the official decides. */
+
+/** The median predicted time of a wave, in seconds, or null for an empty wave. */
+function waveCallSec(members) {
+  if (!members.length) return null;
+  const calls = members.map(r => r.predictedSec).sort((a, b) => a - b);
+  const mid = Math.floor(calls.length / 2);
+  return calls.length % 2 ? calls[mid] : Math.round((calls[mid - 1] + calls[mid]) / 2);
+}
+
+/**
+ * Planned start for every wave still on the line.
+ * Returns a Map of wave -> { anchor, offsetMs, at }: `anchor` is the wave the target is
+ * measured from, `offsetMs` how long after the anchor's gun this wave should go (negative
+ * means before it), and `at` the epoch-ms target — null until the anchor has actually
+ * started. Before any gun the anchor is the lowest-numbered wave with anyone in it, which
+ * is the one that goes first, and it gets no entry of its own.
+ */
+function waveTargets(v, nudges = {}) {
+  const calls = {};
+  v.waves.forEach(w => {
+    const call = waveCallSec(racersInWave(v, w));
+    if (call !== null) calls[w] = call;
+  });
+  const steerable = v.waves.filter(w => calls[w] != null);
+  const started = steerable.filter(w => waveStart(v, w) !== null)
+    .sort((a, b) => waveStart(v, a) - waveStart(v, b) || a - b);
+  const anchor = started[0] ?? steerable[0];
+
+  const out = new Map();
+  if (anchor === undefined) return out;
+  const gun = waveStart(v, anchor);
+  steerable.forEach(w => {
+    if (w === anchor || waveStart(v, w) !== null) return;
+    const nudge = Number(nudges[w]) || 0;
+    const offsetMs = (calls[anchor] - calls[w] + nudge) * 1000;
+    out.set(w, { anchor, offsetMs, at: gun === null ? null : gun + offsetMs });
+  });
+  return out;
+}
+
+/* Nudges are part of the race, like wave starts, so every phone at the start line counts
+   down to the same target. Each change sends the wave's whole new nudge, not the step, so
+   a retried send writes the same value twice rather than adding 30 seconds twice. If two
+   phones press at the same moment, the last one to reach the sheet wins. */
+const NUDGE_STEP_SEC = 30;
+
+function waveNudges(n = currentRace) {
+  return Object.assign({}, db.races[n].waveNudges);
+}
+
+/** Move one wave's target by `deltaSec` (0 clears it). Returns the wave's new nudge. */
+function nudgeWave(wave, deltaSec, n = currentRace) {
+  const data = db.races[n];
+  const nudges = Object.assign({}, data.waveNudges);
+  const next = deltaSec === 0 ? 0 : (nudges[wave] || 0) + deltaSec;
+  if (next) nudges[wave] = next; else delete nudges[wave];
+  data.waveNudges = nudges;
+  save();
+  queue('setWaveNudge', { race: n, wave, nudgeSec: next });
+  renderPage();
+  return next;
+}
+
+/** Signed "+0:30" / "−1:00" for a nudge in seconds. */
+const fmtNudge = sec => `${sec < 0 ? '−' : '+'}${fmtSec(Math.abs(sec))}`;
 
 /** A racer's finish, or null while they're still out on course. */
 function result(racer, v) {
@@ -673,6 +766,7 @@ function resetTimes() {
   data.racers.forEach(r => { r.finishAt = null; r.wave = null; });
   data.waveStarts = {};
   data.wavesLocked = false;
+  data.waveNudges = {};
   save();
   queue('resetTimes', {});
   renderPage();
@@ -820,7 +914,29 @@ function tick() {
     const next = fmtClock(now - Number(el.dataset.liveFrom));
     if (el.textContent !== next) el.textContent = next;
   });
+  $$('[data-count-to]').forEach(el => {
+    const at = Number(el.dataset.countTo);
+    const next = countdownText(at, now);
+    if (el.textContent !== next) el.textContent = next;
+    const due = at <= now;
+    const bar = el.closest('.wave-bar');
+    if (bar) bar.classList.toggle('due', due);
+    /* The one thing a countdown says out loud: the moment it reaches zero, once per wave
+       and target. Never the seconds on the way there. */
+    const key = el.dataset.dueKey;
+    if (due && key && !announcedDue.has(key)) {
+      announcedDue.add(key);
+      announce(el.dataset.dueMessage || 'Start now.');
+    }
+  });
 }
+
+/* Countdowns that have already said "start now" this session, keyed race:wave:target. */
+const announcedDue = new Set();
+
+/** "4:12" while counting down — rounded up, so it reads 0:01 and never 0:00 — then "Start now". */
+const countdownText = (at, now = Date.now()) =>
+  at <= now ? 'Start now' : fmtClock(Math.ceil((at - now) / 1000) * 1000);
 
 /* ── Boot ──────────────────────────────────────────────────────────────── */
 

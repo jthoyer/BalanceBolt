@@ -85,6 +85,8 @@ function renderControl(v) {
 
   const container = $('#waveControls');
   container.innerHTML = '';
+  const nudges = waveNudges();
+  const targets = waveTargets(v, nudges);
 
   v.waves.forEach(wave => {
     const members = racersInWave(v, wave);
@@ -106,6 +108,9 @@ function renderControl(v) {
       </div>
       <div class="wave-body"></div>`;
 
+    const target = !start ? targets.get(wave) : null;
+    if (target) waveCountdown(block.querySelector('.wave-bar'), wave, target);
+
     if (!start) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -122,11 +127,88 @@ function renderControl(v) {
       });
       block.querySelector('.wave-bar').append(btn);
     }
+    // After Start in the DOM, so the tab order matches the page: title, countdown, Start, nudges.
+    if (target) block.querySelector('.wave-bar').append(nudgeControls(wave, nudges[wave] || 0));
 
     const body = block.querySelector('.wave-body');
     members.forEach(r => body.append(timingRow(r, v, start)));
     container.append(block);
   });
+}
+
+/* ── Wave countdown ────────────────────────────────────────────────────── */
+
+/* A wave still on the line gets a target start (see waveTargets() in core.js) so the waves
+   come home together. Before the first gun it states the plan — "Goes 9:30 after wave 1";
+   after it, a countdown that turns into "Start now". It never starts anything: the Start
+   button is still the only way a wave goes, early or late. */
+function waveCountdown(bar, wave, target) {
+  const clock = bar.querySelector('.wave-clock');
+  if (target.at === null) {
+    clock.textContent = planText(target);
+  } else {
+    const due = target.at <= Date.now();
+    bar.classList.toggle('due', due);
+    clock.className = 'wave-clock countdown';
+    clock.innerHTML = '<span class="wave-count-label">Start in</span> <span class="wave-count"></span>';
+    const count = clock.querySelector('.wave-count');
+    count.dataset.countTo = String(target.at);
+    count.dataset.dueKey = `${currentRace}:${wave}:${target.at}`;
+    count.dataset.dueMessage = `Wave ${wave}: start now.`;
+    count.textContent = countdownText(target.at);
+  }
+}
+
+/** The plan before the first gun: "Goes 10:30 after wave 1". One wording, used on screen and aloud. */
+const planText = target => target.offsetMs === 0 ? `Goes with wave ${target.anchor}`
+  : `Goes ${fmtGap(target.offsetMs)} ${target.offsetMs > 0 ? 'after' : 'before'} wave ${target.anchor}`;
+
+function nudgeControls(wave, nudge) {
+  const row = document.createElement('div');
+  row.className = 'wave-nudge';
+  row.setAttribute('role', 'group');
+  row.setAttribute('aria-label', `Adjust wave ${wave}'s target start`);
+
+  const step = (label, delta, key, words) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nudge-button';
+    btn.dataset.focusKey = `nudge:${wave}:${key}`;
+    btn.textContent = label;
+    btn.setAttribute('aria-label', words);
+    btn.addEventListener('click', () => {
+      nudgeWave(wave, delta);
+      announce(nudgeMessage(wave));
+      if (delta === 0) {
+        // Reset disappears with the nudge it cleared; keep the keyboard in the same group.
+        const back = document.querySelector(`[data-focus-key="nudge:${wave}:later"]`);
+        if (back) back.focus();
+      }
+    });
+    return btn;
+  };
+
+  row.append(
+    step(`−${NUDGE_STEP_SEC}s`, -NUDGE_STEP_SEC, 'earlier', `Start wave ${wave} ${NUDGE_STEP_SEC} seconds earlier`),
+    step(`+${NUDGE_STEP_SEC}s`, NUDGE_STEP_SEC, 'later', `Start wave ${wave} ${NUDGE_STEP_SEC} seconds later`)
+  );
+
+  const note = document.createElement('span');
+  note.className = 'wave-nudge-note';
+  note.textContent = nudge ? `Nudged ${fmtNudge(nudge)}` : 'On plan';
+  row.append(note);
+  if (nudge) row.append(step('Reset', 0, 'reset', `Put wave ${wave} back on plan`));
+  return row;
+}
+
+/** What a nudge did, in one sentence, read from the freshly rendered state. */
+function nudgeMessage(wave) {
+  const nudge = waveNudges()[wave] || 0;
+  const target = waveTargets(raceView(), waveNudges()).get(wave);
+  const moved = nudge ? `Wave ${wave} nudged ${fmtNudge(nudge).replace('−', 'minus ')}.` : `Wave ${wave} back on plan.`;
+  if (!target) return moved;
+  if (target.at === null) return `${moved} ${planText(target)}.`;
+  return `${moved} ${target.at <= Date.now() ? 'Start now.' : `Start in ${countdownText(target.at)}.`}`;
 }
 
 function timingRow(r, v, start) {

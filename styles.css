@@ -344,6 +344,22 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
   border: 0; border-radius: 9px; background: var(--yellow); color: var(--ink);
   font: 700 17px "DM Sans", sans-serif; cursor: pointer;
 }
+/* Countdown to a wave's target start (waveTargets() in core.js). The label sits above the
+   figure; at zero the label goes, the figure reads "Start now" in --yellow and the bar gets a
+   yellow edge — said in words first, so the colour is never the only signal. */
+.wave-clock.countdown { display: flex; flex-direction: column; align-items: flex-end; text-align: right }
+.wave-count-label { color: #e6ebf5; font: 700 13px "DM Sans", sans-serif; letter-spacing: 0 }
+.wave-bar.due { box-shadow: inset 6px 0 0 var(--yellow) }
+.wave-bar.due .wave-count-label { display: none }
+.wave-bar.due .wave-count { color: var(--yellow) }
+.wave-nudge { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap }
+.nudge-button {
+  min-height: 44px; min-width: 64px; padding: 8px 14px;
+  border: 1px solid #e6ebf5; border-radius: 9px; background: transparent; color: #fff;
+  font: 700 15px "DM Sans", sans-serif; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.nudge-button:hover { background: rgba(255, 255, 255, .12) }
+.wave-nudge-note { color: #e6ebf5; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums }
 .wave-body { padding: 4px 16px 12px }
 
 .timing-row {
@@ -562,6 +578,8 @@ select:focus-visible,
   .wave-grid { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) }
   .wave-bar { gap: 18px; padding: 16px 20px; flex-wrap: nowrap }
   .start-button { flex-basis: auto; min-height: 52px }
+  /* A waiting wave carries the nudge row too; it takes a second line of its own. */
+  .wave-bar.pending { flex-wrap: wrap }
   /* Two boxes that hold at most three digits do not need half the shell — capped the same
      way the race picker caps its five options, so they read as fields, not as panels. */
   .timing-edit .two-columns { grid-template-columns: repeat(2, minmax(0, 150px)) }
