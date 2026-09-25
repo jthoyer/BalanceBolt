@@ -37,7 +37,8 @@ being passed around can do on its own.
    that race* and a wave.
 2. **Waves** — everyone whose predicted time is within **five minutes** of each other
    goes in the same wave, so a wave leaves together and comes home together. Wave 1 is
-   the quickest calls. Four waves is a hard cap: if the field spreads across more than
+   the **slowest** calls and the last wave the quickest, so the waves go off in number
+   order and come home together. Four waves is a hard cap: if the field spreads across more than
    four five-minute groups, the closest neighbouring groups are merged until four
    remain, so one wave may span more than five minutes. The grouping
    recalculates as people sign up and freezes the moment the first wave starts. Anyone
@@ -50,7 +51,11 @@ being passed around can do on its own.
    possible at all. The sign-up sheet cannot do this: it is a phone passed hand to hand at
    the start line, and its start list is deliberately read-only.
 4. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
-   and its own clock. The race clock at the top runs from the first gun and stays stuck
+   and its own clock. Once the first wave is off, every wave still on the line counts down
+   to a **target start** that brings it home with the first wave: the first gun plus the
+   difference between the two waves' median calls. At zero it says **Start now** — it never
+   starts a wave by itself. **−30s / +30s** nudge a wave's target (that wave only, on this
+   device only), and a wave started early or late does not shift anyone else's target. The race clock at the top runs from the first gun and stays stuck
    to the top of the screen while you scroll.
 5. **Finish** — stop each racer's clock individually as they cross, either with the
    Finish button on their row or by typing their number into **Finish by number**. The

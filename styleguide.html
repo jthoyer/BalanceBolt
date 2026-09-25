@@ -427,6 +427,43 @@
           </div>
 
           <div class="sg-demo">
+            <div class="sg-demo-label"><code>.pending</code> with a countdown — wave 1 has gone; <code>.wave-count</code> counts to the target start, <code>.wave-nudge</code> moves it ±30s</div>
+            <div class="sg-demo-body sg-flush">
+              <section class="wave-block">
+                <div class="wave-bar pending">
+                  <div class="wave-bar-main"><h3>Wave 2</h3><p class="wave-meta">0 of 2 home</p></div>
+                  <p class="wave-clock countdown"><span class="wave-count-label">Start in</span> <span class="wave-count">4:12</span></p>
+                  <button type="button" class="start-button">Start wave 2</button>
+                  <div class="wave-nudge" role="group" aria-label="Adjust wave 2's target start">
+                    <button type="button" class="nudge-button" aria-label="Start wave 2 30 seconds earlier">−30s</button>
+                    <button type="button" class="nudge-button" aria-label="Start wave 2 30 seconds later">+30s</button>
+                    <span class="wave-nudge-note">Nudged +0:30</span>
+                    <button type="button" class="nudge-button" aria-label="Put wave 2 back on plan">Reset</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="sg-demo">
+            <div class="sg-demo-label"><code>.pending.due</code> — the target has passed: "Start now", a <code>--yellow</code> edge, announced once. Never starts itself</div>
+            <div class="sg-demo-body sg-flush">
+              <section class="wave-block">
+                <div class="wave-bar pending due">
+                  <div class="wave-bar-main"><h3>Wave 3</h3><p class="wave-meta">0 of 1 home</p></div>
+                  <p class="wave-clock countdown"><span class="wave-count-label">Start in</span> <span class="wave-count">Start now</span></p>
+                  <button type="button" class="start-button">Start wave 3</button>
+                  <div class="wave-nudge" role="group" aria-label="Adjust wave 3's target start">
+                    <button type="button" class="nudge-button" aria-label="Start wave 3 30 seconds earlier">−30s</button>
+                    <button type="button" class="nudge-button" aria-label="Start wave 3 30 seconds later">+30s</button>
+                    <span class="wave-nudge-note">On plan</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="sg-demo">
             <div class="sg-demo-label"><code>.running</code> — live clock, ticking, Finish enabled</div>
             <div class="sg-demo-body sg-flush">
               <section class="wave-block">

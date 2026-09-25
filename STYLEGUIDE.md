@@ -21,7 +21,7 @@ classes. If you need a new pattern, add it to `styles.css` **and** to this file.
 | `--line` | `#d9dfe8` | **Decorative** container edges only — panels, cards, table wrappers |
 | `--line-strong` | `#78849c` | **Any control boundary**: inputs, selects, small buttons, dashed zones |
 | `--canvas` | `#f7f8fa` | Page background |
-| `--yellow` | `#f8c44f` | Fills only — primary button, wave start button, hero highlight |
+| `--yellow` | `#f8c44f` | Fills — primary button, wave start button, hero highlight. The one text use is "Start now" on an ink wave bar (9.41:1) |
 | `--yellow-soft` | `#ffe08f` | Small accent **text** on ink or green (the eyebrow on dark cards) |
 | `--green` | `#116b43` | A wave that is running, a bang-on result, success |
 | `--green-bg` | `#e8f6ee` | Series prize card, connected sync pill. **Not** the winning row — that is `--gold-bg` |
@@ -60,7 +60,8 @@ states need 3:1.
 | `#edf0f7` (hero body copy) on `--ink` | 13.32 |
 | `#e6ebf5` (wave meta, wave size) on `--ink` | 12.71 |
 | `--yellow-soft` on `--ink` | 11.80 |
-| `--yellow` on `--ink` | 9.41 |
+| `--yellow` on `--ink` ("Start now") | 9.41 |
+| `#ffffff` on the nudge hover fill `#343f59` | 10.49 |
 | `#ffffff` on `--slate` | 8.45 |
 | `#e6ebf5` on `--slate` | 7.07 |
 | `#ffffff` on `--green` | 6.55 |
@@ -118,6 +119,9 @@ states need 3:1.
 | `--gold-rim` medal card edge on `--canvas` | 5.10 |
 | `--silver-rim` medal card edge on `--canvas` | 5.09 |
 | `--yellow` start button on the `--green` wave bar | 4.05 |
+| `--yellow` due edge on the `--ink` wave bar | 9.41 |
+| `#e6ebf5` nudge-button border on `--ink` | 12.71 |
+| `#e6ebf5` nudge-button border on its hover fill (`rgba(255,255,255,.12)` over ink → `#343f59`) | 8.78 |
 | `--line-strong` on `#ffffff` | 3.76 |
 | `--line-strong` on `#fffaf0` | 3.62 |
 | `--line-strong` on `--canvas` | 3.54 |
@@ -265,6 +269,40 @@ it in words:
 - `.running` → `--green`, shows a live clock
 - `.done` → `--slate`, shows the final clock
 
+Waves are numbered **slowest calls first**: wave 1 is the slowest group and the last wave
+the quickest, so they are fired in number order and come home together.
+
+### Wave countdown (`.wave-clock.countdown`, `.wave-nudge`)
+A pending wave other than the first one carries a target start from `waveTargets()`
+(`core.js`), in the wave bar's clock slot:
+- **Before the first gun** — a plain `.waiting` line stating the plan: "Goes 10:30 after
+  wave 1".
+- **After it** — `.wave-count-label` "Start in" over a `.wave-count` that counts down,
+  rounded up so it reads `0:01`, never `0:00`. It carries `data-count-to` and `tick()`
+  updates it the way `data-live-from` clocks are updated.
+- **At zero** — the bar gains `.due`: the label goes, the figure reads **Start now** in
+  `--yellow`, and a 6px inset `--yellow` edge marks the bar. The words carry the state;
+  the colour is reinforcement.
+
+**The maths.** Each wave is steered by its **median** call, and every target is anchored on
+the **first gun** (whichever wave actually went first): `target = firstGun + (median(first
+wave) − median(this wave)) + nudge`. Lining up medians centres each wave's finishing band.
+Anchoring on the first gun, not the previous wave, means a late start is never handed down
+the line.
+
+**The countdown never starts a wave.** The Start button is still the only way a wave goes,
+early or late, and it still asks for confirmation.
+
+**Nudge row.** `.wave-nudge` is a `role="group"` on its own line of the bar (after Start in
+the DOM, so tab order matches the page): `.nudge-button` **−30s** / **+30s**, a
+`.wave-nudge-note` saying "On plan" or "Nudged +0:30", and **Reset** while nudged. A nudge
+moves only its own wave. Nudges are this device's corrections — stored in the UI state per
+race, not sent to the sheet — and are cleared by *Clear times* and *Wipe race*.
+`.nudge-button` is transparent on ink with a `#e6ebf5` border and white label, 44px tall,
+64px wide; each has an `aria-label` naming the wave and the direction, and a
+`data-focus-key` so the four-second poll never drops focus. Reset disappears when pressed,
+so its handler hands focus to **+30s**.
+
 ### Timing row (`.timing-row`)
 One racer during a race: bib, name, "called 25:00", an **Edit call** button, then either a
 live clock plus a **Finish** button, or the elapsed time, the delta and an **Undo** button.
@@ -391,6 +429,7 @@ ranking implied between the two jobs.
 | `.primary-button` | The main action on a form | `--yellow` fill, `--ink` label, 52px |
 | `.save-button` | Secondary primary — "Stop their clock" | `--ink` fill, white label, 52px |
 | `.start-button` | Fire a wave | `--yellow` fill inside the wave bar, 56px |
+| `.nudge-button` | Move a wave's target start ±30s, or Reset | Transparent on ink, `#e6ebf5` border, white label, 44px |
 | `.finish-button` | Stop one racer's clock | `--ink` fill, 48px |
 | `.secondary-button` | Admin actions | `#eef0f4` fill, `--line-strong` border |
 | `.secondary-button.danger` | Destructive | `--red-bg` fill, `--red` border and label |
@@ -464,7 +503,10 @@ WCAG 2.1 AA. These are the decisions worth knowing before adding a screen.
 through `announce()` — "Racer 4, Priya, finished, 12 seconds over."
 
 Nothing that ticks is ever inside a live region. The race clock is
-`role="timer" aria-live="off"`; wave clocks and per-racer clocks are plain text. A
+`role="timer" aria-live="off"`; wave clocks, wave countdowns and per-racer clocks are
+plain text. A countdown speaks exactly once — "Wave 2: start now." through `announce()`
+when it reaches zero, keyed on race, wave and target so a re-render never repeats it — and a
+nudge announces its result once ("Wave 2 nudged +0:30. Start in 5:59."). A
 clock that speaks five times a second makes the page unusable. Containers that
 re-render wholesale (`#startList`, `#waveControls`, `#prizeList`, the boards) have no
 `aria-live` at all — announcing an entire rebuilt list is worse than announcing
