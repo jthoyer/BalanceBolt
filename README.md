@@ -54,8 +54,9 @@ being passed around can do on its own.
    and its own clock. Once the first wave is off, every wave still on the line counts down
    to a **target start** that brings it home with the first wave: the first gun plus the
    difference between the two waves' median calls. At zero it says **Start now** — it never
-   starts a wave by itself. **−30s / +30s** nudge a wave's target (that wave only, on this
-   device only), and a wave started early or late does not shift anyone else's target. The race clock at the top runs from the first gun and stays stuck
+   starts a wave by itself. **−30s / +30s** nudge a wave's target (that wave only). Nudges
+   go to the sheet, so every phone counts down to the same target; if two phones nudge at
+   once, the last to reach the sheet wins. A wave started early or late does not shift anyone else's target. The race clock at the top runs from the first gun and stays stuck
    to the top of the screen while you scroll.
 5. **Finish** — stop each racer's clock individually as they cross, either with the
    Finish button on their row or by typing their number into **Finish by number**. The
@@ -134,6 +135,13 @@ use. `Racers`, `Waves` and `Prizes` each carry a `race` column and every read an
 write is scoped to one race. A sheet left over from the single-race version is
 migrated the first time it is touched: a `race` column is inserted and everything
 already there is filed under race 1.
+
+A wave's countdown nudge is stored in `Meta` as `nudge:<race>:<wave>`, in seconds.
+**Clear times** and **Wipe race** remove that race's nudges.
+
+**Updating the script.** When `apps-script.gs` changes, paste it in again and use
+**Deploy → Manage deployments → Edit → Version: New version**. That keeps the same
+`/exec` URL. A *new deployment* would give a new URL, and `core.js` would need it.
 
 The pill in the top right shows the connection state: *Local only*, *Synced*,
 *Saving…* or *Offline*. Actions taken while offline are queued in an outbox and sent

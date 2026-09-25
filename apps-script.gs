@@ -11,6 +11,7 @@
  * 4. Copy the /exec URL it gives you and paste it into API_URL at the top of core.js.
  *
  * The sheets (Racers, Waves, Prizes, Meta) are created automatically on first use.
+ * A wave's countdown nudge is a Meta row keyed `nudge:<race>:<wave>`, value in seconds.
  * Every row is tagged with a race number, 1 to 5, and every action is scoped to one race.
  * A sheet left over from the single-race version is migrated on first touch: a `race`
  * column is inserted and every existing row is filed under race 1.
@@ -134,6 +135,17 @@ function getCell_(name, row, column) {
   return sheet_(name).getRange(row, SHEETS[name].indexOf(column) + 1).getValue();
 }
 
+/** Every countdown nudge for one race goes when its clocks are cleared. */
+function clearNudges_(race) {
+  var sh = sheet_('Meta');
+  var prefix = 'nudge:' + race + ':';
+  var doomed = rows_('Meta')
+    .filter(function (m) { return String(m.key).indexOf(prefix) === 0; })
+    .map(function (m) { return m._row; });
+  doomed.sort(function (a, b) { return b - a; });
+  doomed.forEach(function (r) { sh.deleteRow(r); });
+}
+
 /** Delete every row matching `match`, bottom up so the indices stay valid. */
 function deleteRowsWhere_(name, match) {
   var sh = sheet_(name);
@@ -178,8 +190,16 @@ function doGet() {
   try {
     var races = {};
     for (var n = 1; n <= RACE_COUNT; n++) {
-      races[n] = { racers: [], waveStarts: {}, wavesLocked: String(meta_('wavesLocked:' + n)) === 'true', prizes: [] };
+      races[n] = { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: String(meta_('wavesLocked:' + n)) === 'true', prizes: [] };
     }
+
+    rows_('Meta').forEach(function (m) {
+      var parts = String(m.key).split(':');
+      if (parts.length !== 3 || parts[0] !== 'nudge') return;
+      var race = races[Number(parts[1])];
+      var sec = Number(m.value);
+      if (race && sec) race.waveNudges[Number(parts[2])] = sec;
+    });
 
     rows_('Racers').forEach(function (r) {
       var race = races[Number(r.race)];
@@ -283,6 +303,17 @@ var ACTIONS = {
     }
   },
 
+  /* A timing official moving one wave's countdown target. The payload carries the wave's
+     whole new nudge, not the ±30s step, so a retry writes the same value twice. */
+  setWaveNudge: function (body) {
+    var race = raceOf_(body);
+    var wave = Number(body.wave);
+    var sec = Number(body.nudgeSec);
+    if (!(wave >= 1 && wave <= 20) || Math.floor(wave) !== wave) throw new Error('Bad wave: ' + body.wave);
+    if (!(Math.abs(sec) <= 3600) || Math.floor(sec) !== sec) throw new Error('Bad nudge: ' + body.nudgeSec);
+    setMeta_('nudge:' + race + ':' + wave, sec);
+  },
+
   finish: function (body) {
     var race = raceOf_(body);
     var row = findRowWhere_('Racers', { race: race, id: body.id });
@@ -348,6 +379,7 @@ var ACTIONS = {
         setCell_('Racers', r._row, 'finishAt', '');
       });
     deleteRowsWhere_('Waves', { race: race });
+    clearNudges_(race);
     setMeta_('wavesLocked:' + race, 'false');
   },
 
@@ -356,6 +388,7 @@ var ACTIONS = {
     deleteRowsWhere_('Racers', { race: race });
     deleteRowsWhere_('Waves', { race: race });
     deleteRowsWhere_('Prizes', { race: race });
+    clearNudges_(race);
     setMeta_('wavesLocked:' + race, 'false');
   }
 };

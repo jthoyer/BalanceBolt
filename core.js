@@ -37,7 +37,7 @@ function read(key, fallback) {
   } catch { return fallback; }
 }
 
-const emptyRace = () => ({ racers: [], waveStarts: {}, wavesLocked: false, prizes: [] });
+const emptyRace = () => ({ racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] });
 
 function emptyDb() {
   const races = {};
@@ -56,6 +56,12 @@ function cleanRace(src) {
     const at = Number(t);
     if (wave > 0 && at > 0) waveStarts[wave] = at;
   });
+  const waveNudges = {};
+  Object.entries(raw.waveNudges || {}).forEach(([w, sec]) => {
+    const wave = Number(w);
+    const n = Number(sec);
+    if (wave > 0 && Number.isInteger(n) && n !== 0) waveNudges[wave] = n;
+  });
   return {
     racers: (Array.isArray(raw.racers) ? raw.racers : []).map(r => ({
       id: String(r.id),
@@ -66,6 +72,7 @@ function cleanRace(src) {
       finishAt: r.finishAt ? Number(r.finishAt) : null
     })),
     waveStarts,
+    waveNudges,
     wavesLocked: !!raw.wavesLocked,
     prizes: (Array.isArray(raw.prizes) ? raw.prizes : []).map(p => ({
       id: String(p.id),
@@ -372,36 +379,27 @@ function waveTargets(v, nudges = {}) {
   return out;
 }
 
-/* Nudges are this device's own manual corrections — the phone at the start line is the
-   one that fires the waves — so they live in `ui`, per race, and never go to the sheet. */
+/* Nudges are part of the race, like wave starts, so every phone at the start line counts
+   down to the same target. Each change sends the wave's whole new nudge, not the step, so
+   a retried send writes the same value twice rather than adding 30 seconds twice. If two
+   phones press at the same moment, the last one to reach the sheet wins. */
 const NUDGE_STEP_SEC = 30;
 
 function waveNudges(n = currentRace) {
-  const all = ui.waveNudges && typeof ui.waveNudges === 'object' ? ui.waveNudges : {};
-  const mine = all[n] && typeof all[n] === 'object' ? all[n] : {};
-  const out = {};
-  Object.entries(mine).forEach(([w, sec]) => {
-    if (Number(w) > 0 && Number.isFinite(Number(sec)) && Number(sec) !== 0) out[Number(w)] = Number(sec);
-  });
-  return out;
+  return Object.assign({}, db.races[n].waveNudges);
 }
 
 /** Move one wave's target by `deltaSec` (0 clears it). Returns the wave's new nudge. */
 function nudgeWave(wave, deltaSec, n = currentRace) {
-  const mine = waveNudges(n);
-  const next = deltaSec === 0 ? 0 : (mine[wave] || 0) + deltaSec;
-  if (next) mine[wave] = next; else delete mine[wave];
-  ui.waveNudges = Object.assign({}, ui.waveNudges, { [n]: mine });
+  const data = db.races[n];
+  const nudges = Object.assign({}, data.waveNudges);
+  const next = deltaSec === 0 ? 0 : (nudges[wave] || 0) + deltaSec;
+  if (next) nudges[wave] = next; else delete nudges[wave];
+  data.waveNudges = nudges;
   save();
+  queue('setWaveNudge', { race: n, wave, nudgeSec: next });
   renderPage();
   return next;
-}
-
-function clearNudges(n = currentRace) {
-  if (!ui.waveNudges || !ui.waveNudges[n]) return;
-  const rest = Object.assign({}, ui.waveNudges);
-  delete rest[n];
-  ui.waveNudges = rest;
 }
 
 /** Signed "+0:30" / "−1:00" for a nudge in seconds. */
@@ -768,7 +766,7 @@ function resetTimes() {
   data.racers.forEach(r => { r.finishAt = null; r.wave = null; });
   data.waveStarts = {};
   data.wavesLocked = false;
-  clearNudges();
+  data.waveNudges = {};
   save();
   queue('resetTimes', {});
   renderPage();
@@ -776,7 +774,6 @@ function resetTimes() {
 
 function resetRace() {
   db.races[currentRace] = emptyRace();
-  clearNudges();
   save();
   queue('resetRace', {});
   renderPage();

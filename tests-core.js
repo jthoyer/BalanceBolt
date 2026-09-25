@@ -164,7 +164,7 @@ globalThis.__TESTS_DONE__ = (async function () {
   group('cleanRace / cleanDb — junk in, known shape out');
 
   test('cleanRace turns null, undefined and rubbish into an empty race', () => {
-    const expected = { racers: [], waveStarts: {}, wavesLocked: false, prizes: [] };
+    const expected = { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] };
     eq(cleanRace(null), expected);
     eq(cleanRace(undefined), expected);
     eq(cleanRace('nonsense'), expected);
@@ -205,7 +205,7 @@ globalThis.__TESTS_DONE__ = (async function () {
     const out = cleanDb({ races: { 1: { racers: [] } } });
     eq(Object.keys(out.races).length, 5, 'the series is five races');
     eq(RACE_COUNT, 5, 'and core.js still says so');
-    eq(out.races[5], { racers: [], waveStarts: {}, wavesLocked: false, prizes: [] },
+    eq(out.races[5], { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] },
        'the races nobody has entered are filled in, not missing');
   });
 
@@ -331,7 +331,6 @@ globalThis.__TESTS_DONE__ = (async function () {
       racers.push(racer('r' + n, n, 'Racer ' + n, sec, { wave: i + 1 }));
     }));
     setDb({ 1: { racers, waveStarts, wavesLocked: true } });
-    ui.waveNudges = {};
     return raceView(1);
   }
 
@@ -409,10 +408,41 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(waveNudges(1), {}, 'reset leaves nothing behind');
   });
 
-  test('nudges survive a reload, because they are saved with the UI state', () => {
+  test('nudges are saved with the race, not the UI state, so a reload keeps them', () => {
     wavedb([[2400], [1500]], { 1: T });
     nudgeWave(2, 30);
-    eq(JSON.parse(localStorage.getItem(UI_KEY)).waveNudges, { 1: { 2: 30 } });
+    eq(JSON.parse(localStorage.getItem(STORE_KEY)).races[1].waveNudges, { 2: 30 });
+    eq(JSON.parse(localStorage.getItem(UI_KEY)).waveNudges, undefined, 'nothing in the UI state');
+  });
+
+  test('a nudge is sent to the sheet as the wave\'s whole new value, so a retry cannot double it', () => {
+    wavedb([[2400], [1500]], { 1: T });
+    const sent = [];
+    queue = function (action, payload) { sent.push({ action, payload }); };
+    try {
+      nudgeWave(2, 30);
+      nudgeWave(2, 30);
+      nudgeWave(2, 0);
+    } finally { queue = noopQueue; }
+    eq(sent.map(o => o.action), ['setWaveNudge', 'setWaveNudge', 'setWaveNudge']);
+    eq(sent.map(o => o.payload.nudgeSec), [30, 60, 0]);
+    eq(sent[0].payload.wave, 2);
+    eq(sent[0].payload.race, 1);
+  });
+
+  test('a nudge from another phone arrives with the sheet and moves this phone\'s countdown', () => {
+    const v = wavedb([[2400], [1500]], { 1: T });
+    eq(waveTargets(v, waveNudges(1)).get(2).at, T + 900000);
+    // The shape doGet() returns: waveNudges keyed by wave, in seconds.
+    db = cleanDb({ races: { 1: { racers: race(1).racers, waveStarts: { 1: T }, waveNudges: { 2: -60 }, wavesLocked: true } } });
+    eq(waveNudges(1), { 2: -60 });
+    eq(waveTargets(raceView(1), waveNudges(1)).get(2).at, T + 900000 - 60000);
+  });
+
+  test('junk nudges off the wire are dropped, not spread into a target', () => {
+    const clean = cleanRace({ waveNudges: { 2: 'abc', 3: 1.5, 0: 30, 4: 0, 5: -30 } });
+    eq(clean.waveNudges, { 5: -30 });
+    eq(cleanRace({}).waveNudges, {}, 'a race saved before nudges existed loads with none');
   });
 
   test('resetting the clocks clears that race\'s nudges', () => {
@@ -759,7 +789,7 @@ globalThis.__TESTS_DONE__ = (async function () {
       prizes: [{ id: 'p1', label: 'X', racerId: 'a', awardedAt: T }]
     } });
     resetRace();
-    eq(race(1), { racers: [], waveStarts: {}, wavesLocked: false, prizes: [] });
+    eq(race(1), { racers: [], waveStarts: {}, waveNudges: {}, wavesLocked: false, prizes: [] });
   });
 
   test('one race is untouched by changes to another', () => {

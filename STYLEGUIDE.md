@@ -296,8 +296,8 @@ early or late, and it still asks for confirmation.
 **Nudge row.** `.wave-nudge` is a `role="group"` on its own line of the bar (after Start in
 the DOM, so tab order matches the page): `.nudge-button` **−30s** / **+30s**, a
 `.wave-nudge-note` saying "On plan" or "Nudged +0:30", and **Reset** while nudged. A nudge
-moves only its own wave. Nudges are this device's corrections — stored in the UI state per
-race, not sent to the sheet — and are cleared by *Clear times* and *Wipe race*.
+moves only its own wave. Nudges are part of the race and go to the sheet, so every phone
+shows the same target. They are cleared by *Clear times* and *Wipe race*.
 `.nudge-button` is transparent on ink with a `#e6ebf5` border and white label, 44px tall,
 64px wide; each has an `aria-label` naming the wave and the direction, and a
 `data-focus-key` so the four-second poll never drops focus. Reset disappears when pressed,
