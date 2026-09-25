@@ -145,9 +145,7 @@ function renderControl(v) {
 function waveCountdown(bar, wave, target) {
   const clock = bar.querySelector('.wave-clock');
   if (target.at === null) {
-    const gap = fmtGap(target.offsetMs);
-    clock.textContent = target.offsetMs === 0 ? `Goes with wave ${target.anchor}`
-      : `Goes ${gap} ${target.offsetMs > 0 ? 'after' : 'before'} wave ${target.anchor}`;
+    clock.textContent = planText(target);
   } else {
     const due = target.at <= Date.now();
     bar.classList.toggle('due', due);
@@ -160,6 +158,10 @@ function waveCountdown(bar, wave, target) {
     count.textContent = countdownText(target.at);
   }
 }
+
+/** The plan before the first gun: "Goes 10:30 after wave 1". One wording, used on screen and aloud. */
+const planText = target => target.offsetMs === 0 ? `Goes with wave ${target.anchor}`
+  : `Goes ${fmtGap(target.offsetMs)} ${target.offsetMs > 0 ? 'after' : 'before'} wave ${target.anchor}`;
 
 function nudgeControls(wave, nudge) {
   const row = document.createElement('div');
@@ -205,9 +207,7 @@ function nudgeMessage(wave) {
   const target = waveTargets(raceView(), waveNudges()).get(wave);
   const moved = nudge ? `Wave ${wave} nudged ${fmtNudge(nudge).replace('−', 'minus ')}.` : `Wave ${wave} back on plan.`;
   if (!target) return moved;
-  if (target.at === null) {
-    return `${moved} Goes ${fmtGap(target.offsetMs)} ${target.offsetMs >= 0 ? 'after' : 'before'} wave ${target.anchor}.`;
-  }
+  if (target.at === null) return `${moved} ${planText(target)}.`;
   return `${moved} ${target.at <= Date.now() ? 'Start now.' : `Start in ${countdownText(target.at)}.`}`;
 }
 
