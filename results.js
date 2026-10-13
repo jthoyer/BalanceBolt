@@ -226,6 +226,15 @@ function timingRow(r, v, start) {
     tag.className = 'status-tag';
     tag.textContent = 'Wave set by hand';
     actions.append(tag);
+  } else {
+    const fits = callMismatch(v, r);
+    if (fits) {
+      const tag = document.createElement('span');
+      tag.className = 'status-tag';
+      tag.textContent = `Call fits wave ${fits}`;
+      tag.title = 'Joined after the first gun, or the call was edited after it. The wave stays put.';
+      actions.append(tag);
+    }
   }
   row.insertBefore(actions, row.querySelector('.timing-result'));
   if (callEdit && callEdit.id === r.id) row.append(callEditForm(r, v));

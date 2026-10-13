@@ -10,7 +10,7 @@
    the result lands on globalThis.__TEST_RESULTS__ for the runner to report.
 
    WHY THESE FUNCTIONS
-   core.js holds the logic that is hardest to check by reading: the four-wave merge
+   core.js holds the logic that is hardest to check by reading: the six-wave merge
    in groupByPredicted(), the best-four-of-five scoring in seriesStandings(), and the
    rounding in the time helpers. Those are pure, so they are cheap to assert and
    expensive to eyeball.
@@ -216,7 +216,7 @@ globalThis.__TESTS_DONE__ = (async function () {
 
   /* ═══ Wave grouping ═════════════════════════════════════════════════════ */
 
-  group('groupByPredicted — the five-minute rule and the four-wave cap');
+  group('groupByPredicted — the five-minute rule and the six-wave cap');
 
   const field = specs => specs.map((sec, i) => racer('r' + i, i + 1, 'Racer ' + (i + 1), sec));
   const shape = groups => groups.map(g => g.map(r => r.predictedSec));
@@ -252,21 +252,21 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(shape(groupByPredicted(field([1500, 600, 2000, 800, 1300]))), [[2000], [1300, 1500], [600, 800]]);
   });
 
-  test('after the four-wave merge wave 1 still holds the slowest call', () => {
-    const groups = groupByPredicted(field([600, 1000, 1400, 1800, 2200, 2600, 3000]));
-    eq(groups[0].some(r => r.predictedSec === 3000), true, 'the slowest racer is in wave 1');
-    eq(groups[3].some(r => r.predictedSec === 600), true, 'the quickest racer is in the last wave');
+  test('after the six-wave merge wave 1 still holds the slowest call', () => {
+    const groups = groupByPredicted(field([600, 1000, 1400, 1800, 2200, 2600, 3000, 3400]));
+    eq(groups[0].some(r => r.predictedSec === 3400), true, 'the slowest racer is in wave 1');
+    eq(groups[5].some(r => r.predictedSec === 600), true, 'the quickest racer is in the last wave');
   });
 
   /* The 4 below is deliberately a literal, not MAX_WAVES. Asserting a constant
      against itself passes whatever the constant is changed to, which is no test
-     at all — the club runs four waves, so four is the fact being pinned. Same
+     at all — the club runs six waves, so six is the fact being pinned. Same
      reasoning for the 5 in the cleanDb tests. */
-  test('never more than four groups, however spread the field', () => {
-    const groups = groupByPredicted(field([600, 1000, 1400, 1800, 2200, 2600, 3000]));
-    eq(groups.length, 4, 'seven natural groups must collapse to four');
-    eq(MAX_WAVES, 4, 'and the cap in core.js is still four');
-    eq(groups.reduce((n, g) => n + g.length, 0), 7, 'nobody is lost in the merge');
+  test('never more than six groups, however spread the field', () => {
+    const groups = groupByPredicted(field([600, 1000, 1400, 1800, 2200, 2600, 3000, 3400]));
+    eq(groups.length, 6, 'eight natural groups must collapse to six');
+    eq(MAX_WAVES, 6, 'and the cap in core.js is still six');
+    eq(groups.reduce((n, g) => n + g.length, 0), 8, 'nobody is lost in the merge');
   });
 
   test('the merge keeps every racer exactly once', () => {
@@ -962,10 +962,10 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(waveTargets(raceView(1)).has(3), true);
   });
 
-  test('a wave outside 1 to 4 is refused', () => {
+  test('a wave outside 1 to 6 is refused', () => {
     trio();
     eq(setRacerWave('a', 0).ok, false);
-    eq(setRacerWave('a', 5).ok, false, 'four waves is the cap');
+    eq(setRacerWave('a', 7).ok, false, 'six waves is the cap');
     eq(setRacerWave('a', 1.5).ok, false);
     eq(setRacerWave('nope', 1).ok, false);
     eq(race(1).racers[0].waveOverride, null);
@@ -1057,6 +1057,29 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(out.wave, 2, 'a field that regrouped mid-race would be a different race');
     eq(raceView(1).map.get('b'), 2);
     eq(race(1).racers[1].predictedSec, 630, 'but the call itself is still corrected');
+  });
+
+  test('callMismatch names the wave a locked racer\'s call fits, and only then', () => {
+    setDb({ 1: {
+      racers: [
+        racer('a', 1, 'Ana', 600, { wave: 1 }),
+        racer('b', 2, 'Bea', 1800, { wave: 2 }),
+        racer('c', 3, 'Cal', 600, { wave: 2, waveOverride: 2 })
+      ],
+      waveStarts: { 1: T }, wavesLocked: true
+    } });
+    setPredictedTime('b', 630);
+    const v = raceView(1);
+    eq(callMismatch(v, racerById(v, 'a')), null, 'Ana sits where her call puts her');
+    eq(callMismatch(v, racerById(v, 'b')), 1, 'Bea was edited after the gun: her call fits wave 1');
+    eq(callMismatch(v, racerById(v, 'c')), null, 'a hand-set racer already says so');
+  });
+
+  test('callMismatch is null before the first gun', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 1800)], wavesLocked: false } });
+    const v = raceView(1);
+    eq(callMismatch(v, racerById(v, 'a')), null);
+    eq(callMismatch(v, racerById(v, 'b')), null);
   });
 
   test('a finished racer is re-measured against the corrected call', () => {

@@ -12,7 +12,7 @@
  *
  * The sheets (Racers, Waves, Prizes, Meta) are created automatically on first use.
  * A wave's countdown nudge is a Meta row keyed `nudge:<race>:<wave>`, value in seconds.
- * A racer put in a wave by hand carries it in the Racers `waveOverride` column (1–4, or blank
+ * A racer put in a wave by hand carries it in the Racers `waveOverride` column (1–6, or blank
  * for automatic). The column is added to an existing sheet the first time it is touched.
  * Every row is tagged with a race number, 1 to 5, and every action is scoped to one race.
  * A sheet left over from the single-race version is migrated on first touch: a `race`
@@ -24,7 +24,7 @@
 
 var SHEET_ID = '1exilWhjiLgbO1sGGSXqYvk20W5K5ANy3xRh0n1qCRfQ';
 var RACE_COUNT = 5;
-var MAX_WAVES = 4;
+var MAX_WAVES = 6;
 
 var SHEETS = {
   Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt', 'waveOverride'],

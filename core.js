@@ -6,7 +6,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyav9iA4QOLEb5xXcuolIcT
 /* Shared by index.html (sign-up) and boltresults.html (timing + results).
    Nothing in here touches page-specific markup: pages set `renderPage` and call `boot()`. */
 
-const MAX_WAVES = 4;
+const MAX_WAVES = 6;
 /* Racers within five minutes of each other's predicted time share a wave. */
 const WAVE_SPAN_SEC = 5 * 60;
 const RACE_COUNT = 5;
@@ -271,8 +271,8 @@ function nextOpenWave(data) {
  * countdown from waveTargets() — come home together rather than strung out. Only the
  * numbering is reversed; which racers share a wave is exactly what it was.
  *
- * That can produce more than MAX_WAVES groups, and four is a hard cap, so the closest
- * neighbouring groups are merged back together until four remain. Merging the pair with
+ * That can produce more than MAX_WAVES groups, and six is a hard cap, so the closest
+ * neighbouring groups are merged back together until six remain. Merging the pair with
  * the smallest combined span keeps the five-minute rule true for as many waves as it can.
  */
 function groupByPredicted(list) {
@@ -308,17 +308,38 @@ function groupByPredicted(list) {
  * Once locked, the stored wave wins for everybody, and a hand move writes the stored wave.
  */
 function buildWaveMap(data, list) {
-  const map = new Map();
   if (data.wavesLocked) {
+    const map = new Map();
     const fallback = nextOpenWave(data);
     list.forEach(r => map.set(r.id, Number(r.wave) || fallback));
     return map;
   }
+  return groupedWaveMap(list);
+}
+
+/** The wave map the five-minute rule would draw today, ignoring any lock. */
+function groupedWaveMap(list) {
+  const map = new Map();
   groupByPredicted(list.filter(r => !r.waveOverride)).forEach((group, i) => {
     group.forEach(racer => map.set(racer.id, i + 1));
   });
   list.forEach(r => { if (r.waveOverride) map.set(r.id, r.waveOverride); });
   return map;
+}
+
+/**
+ * Where a racer's call says they belong, when that is not where they are. Returns the
+ * wave their call fits, or null when they sit where the grouping would put them.
+ *
+ * Only a locked race can disagree with itself: a late sign-up lands in the next open wave
+ * whatever they called, and Edit call after the first gun changes the call but not the
+ * wave. Hand-set racers are left out, since their row already says so.
+ */
+function callMismatch(v, racer) {
+  if (!v.data.wavesLocked || racer.waveOverride) return null;
+  if (!v.grouped) v.grouped = groupedWaveMap(v.list);
+  const fits = v.grouped.get(racer.id);
+  return fits && fits !== v.map.get(racer.id) ? fits : null;
 }
 
 function raceView(n = currentRace) {
@@ -337,7 +358,7 @@ const racerById = (v, id) => v.list.find(r => r.id === id);
 /* ── Wave targets: sending each wave off so they all come home together ──
 
    The call a wave is steered by is its median call — the middle of the wave's finishing
-   band, so the bands overlap centred rather than lining up on one outlier (the four-wave
+   band, so the bands overlap centred rather than lining up on one outlier (the six-wave
    merge can leave a wave more than five minutes wide). A wave with an even count takes
    the mean of its middle two, rounded to the second.
 
