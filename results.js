@@ -594,7 +594,11 @@ function waveEditHelp(r, v) {
     v.data.wavesLocked
       ? 'Waves are locked in, so only this racer moves. Their clock runs from the new wave\'s start.'
       : 'A racer set by hand stays in that wave when everyone else regroups. Auto hands them back.',
-    r.finishAt ? 'They are already home, so they can only move to a wave that has started, and their result changes.' : ''
+    r.finishAt
+      ? 'They are already home, so they can only move to a wave that has started, and their time changes.'
+      : waveStart(v, v.map.get(r.id)) !== null
+        ? 'They are already running. Move them to a wave that has not started and their clock starts again from that gun.'
+        : ''
   ].filter(Boolean).join(' ');
 }
 

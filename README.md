@@ -54,8 +54,9 @@ being passed around can do on its own.
    racer's row puts them in any wave from 1 to 4, whatever their call says. Before the first
    gun they stay in that wave while everyone else regroups around them; **Auto** hands them
    back. After the gun only they move, and their clock runs from their new wave's start. A
-   racer who is already home can only move to a wave that has started. A hand-set wave
-   survives **Clear times**. This needs the updated `apps-script.gs` (it adds a
+   racer already running can move to a wave that hasn't started, and their clock starts
+   again from that gun. A racer already home can only move to a wave that has started. A hand-set
+   racer doesn't steer their new wave's gun time. A hand-set wave survives **Clear times**. This needs the updated `apps-script.gs` (it adds a
    `waveOverride` column to `Racers`), so paste that in before using it on a shared sheet.
 5. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
    and its own clock. Once the first wave is off, every wave still on the line counts down

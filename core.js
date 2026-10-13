@@ -369,7 +369,11 @@ function waveCallSec(members) {
 function waveTargets(v, nudges = {}) {
   const calls = {};
   v.waves.forEach(w => {
-    const call = waveCallSec(racersInWave(v, w));
+    /* A racer moved here by hand doesn't steer the wave's gun — the wave is aimed at the
+       racers who belong in it by their call. Only a wave that is all hand moves uses theirs. */
+    const members = racersInWave(v, w);
+    const auto = members.filter(r => !r.waveOverride);
+    const call = waveCallSec(auto.length ? auto : members);
     if (call !== null) calls[w] = call;
   });
   const steerable = v.waves.filter(w => calls[w] != null);
@@ -722,8 +726,9 @@ function setPredictedTime(id, predictedSec) {
  * Clearing the pin after the lock leaves them where they are: auto means "where the lock
  * put you", and nothing regroups mid-race.
  *
- * One move is refused: a racer who is already home cannot go to a wave that has not
- * started, because a finish with no start is not a result.
+ * A racer who is already running can go to a wave that has not started: their clock
+ * starts again from that wave's gun. One move is refused: a racer who is already home
+ * cannot go to a wave that has not started, because a finish with no start is not a result.
  *
  * Returns `{ ok, racer, was, wave, locked, pinned }`, or `{ ok: false, error }`.
  */
@@ -732,11 +737,11 @@ function setRacerWave(id, wave) {
   const racer = data.racers.find(r => r.id === id);
   if (!racer) return { ok: false, error: 'No racer with that number.' };
   if (wave !== null && !validWave(wave)) return { ok: false, error: `Pick a wave from 1 to ${MAX_WAVES}.` };
+  const was = raceView().map.get(id);
   if (wave !== null && racer.finishAt && data.waveStarts[wave] == null) {
     return { ok: false, error: `${racer.name} is already home, and wave ${wave} has not started.` };
   }
 
-  const was = raceView().map.get(id);
   racer.waveOverride = wave;
   if (data.wavesLocked && wave !== null) racer.wave = wave;
   save();

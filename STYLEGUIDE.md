@@ -346,7 +346,8 @@ marked `(started)`), one line of `.helper-text`, a `.form-error`, and the same C
 (`waveEdit` in `results.js`), Escape-to-close and focus return. Opening either editor closes
 the other, so one form is open on the page at a time. The helper line states the consequence
 before Save: before the gun a pinned racer stays put while everyone else regroups; after the
-lock only they move and their clock runs from the new wave's gun; a racer already home can
+lock only they move and their clock runs from the new wave's gun; a racer already running
+is warned that a move to an unstarted wave restarts their clock; a racer already home can
 only go to a wave that has started. A pinned racer shows a `.status-tag` (`--muted` on
 `--navy-bg`, 5.55:1) reading `Wave set by hand`.
 

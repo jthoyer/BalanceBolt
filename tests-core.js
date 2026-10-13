@@ -925,6 +925,43 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(race(1).racers[0].wave, 1, 'and nothing changed');
   });
 
+  test('a racer who is running can move to a wave that has not started', () => {
+    trio({ wavesLocked: true, waveStarts: { 1: T } });
+    race(1).racers.forEach((r, i) => { r.wave = [1, 2, 1][i]; });
+    eq(setRacerWave('a', 2).ok, true);
+    eq(race(1).racers[0].wave, 2);
+    eq(waveStart(raceView(1), 2), null, 'their clock waits for the wave 2 gun');
+  });
+
+  test('a racer can move between two waves that have both started', () => {
+    trio({ wavesLocked: true, waveStarts: { 1: T, 2: T + 60000 } });
+    race(1).racers.forEach((r, i) => { r.wave = [1, 2, 1][i]; });
+    eq(setRacerWave('a', 2).ok, true);
+    eq(race(1).racers[0].wave, 2);
+  });
+
+  test('a racer whose wave has not gone can still move anywhere', () => {
+    trio({ wavesLocked: true, waveStarts: { 1: T } });
+    race(1).racers.forEach((r, i) => { r.wave = [2, 2, 1][i]; });
+    eq(setRacerWave('a', 3).ok, true, 'wave 2 to wave 3, neither started');
+    eq(setRacerWave('a', 1).ok, true, 'into a wave that has started');
+  });
+
+  test('a racer moved by hand does not steer their new wave\'s gun', () => {
+    trio();
+    addRacer('Dee', 1790); // wave 1 is Cal and Dee (call 29:55), wave 2 is Ana and Bea
+    setRacerWave('a', 1);  // Ana, a 10:00 call, into the slow wave
+    eq(raceView(1).map.get('b'), 2, 'Bea is wave 2 on her own');
+    eq(waveTargets(raceView(1)).get(2).offsetMs, (1795 - 630) * 1000,
+      'wave 1 is still aimed at 29:55, not dragged to 29:50 by Ana');
+  });
+
+  test('a wave made only of hand moves is steered by their calls', () => {
+    trio();
+    setRacerWave('a', 3);
+    eq(waveTargets(raceView(1)).has(3), true);
+  });
+
   test('a wave outside 1 to 4 is refused', () => {
     trio();
     eq(setRacerWave('a', 0).ok, false);
