@@ -340,7 +340,7 @@ only the time they are measured against changes; and if they are already home, t
 leaderboard moves under them.
 
 ### Wave mover (`.timing-edit`, second use)
-The form **Move wave** opens: one labelled `<select>` (`Auto`, then Wave 1–4, a started wave
+The form **Move wave** opens: one labelled `<select>` (`Auto`, then Wave 1–6, a started wave
 marked `(started)`), one line of `.helper-text`, a `.form-error`, and the same Cancel /
 **Save the wave** footer. It reuses the call editor's container, state-not-DOM pattern
 (`waveEdit` in `results.js`), Escape-to-close and focus return. Opening either editor closes

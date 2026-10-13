@@ -38,8 +38,8 @@ being passed around can do on its own.
 2. **Waves** — everyone whose predicted time is within **five minutes** of each other
    goes in the same wave, so a wave leaves together and comes home together. Wave 1 is
    the **slowest** calls and the last wave the quickest, so the waves go off in number
-   order and come home together. Four waves is a hard cap: if the field spreads across more than
-   four five-minute groups, the closest neighbouring groups are merged until four
+   order and come home together. Six waves is a hard cap: if the field spreads across more than
+   six five-minute groups, the closest neighbouring groups are merged until six
    remain, so one wave may span more than five minutes. The grouping
    recalculates as people sign up and freezes the moment the first wave starts. Anyone
    who signs up after that joins the next wave still waiting on the line.

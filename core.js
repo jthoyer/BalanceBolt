@@ -6,7 +6,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbyav9iA4QOLEb5xXcuolIcT
 /* Shared by index.html (sign-up) and boltresults.html (timing + results).
    Nothing in here touches page-specific markup: pages set `renderPage` and call `boot()`. */
 
-const MAX_WAVES = 4;
+const MAX_WAVES = 6;
 /* Racers within five minutes of each other's predicted time share a wave. */
 const WAVE_SPAN_SEC = 5 * 60;
 const RACE_COUNT = 5;
@@ -271,8 +271,8 @@ function nextOpenWave(data) {
  * countdown from waveTargets() — come home together rather than strung out. Only the
  * numbering is reversed; which racers share a wave is exactly what it was.
  *
- * That can produce more than MAX_WAVES groups, and four is a hard cap, so the closest
- * neighbouring groups are merged back together until four remain. Merging the pair with
+ * That can produce more than MAX_WAVES groups, and six is a hard cap, so the closest
+ * neighbouring groups are merged back together until six remain. Merging the pair with
  * the smallest combined span keeps the five-minute rule true for as many waves as it can.
  */
 function groupByPredicted(list) {
@@ -358,7 +358,7 @@ const racerById = (v, id) => v.list.find(r => r.id === id);
 /* ── Wave targets: sending each wave off so they all come home together ──
 
    The call a wave is steered by is its median call — the middle of the wave's finishing
-   band, so the bands overlap centred rather than lining up on one outlier (the four-wave
+   band, so the bands overlap centred rather than lining up on one outlier (the six-wave
    merge can leave a wave more than five minutes wide). A wave with an even count takes
    the mean of its middle two, rounded to the second.
 
