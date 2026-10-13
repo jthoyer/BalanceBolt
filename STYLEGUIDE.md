@@ -304,9 +304,10 @@ shows the same target. They are cleared by *Clear times* and *Wipe race*.
 so its handler hands focus to **+30s**.
 
 ### Timing row (`.timing-row`)
-One racer during a race: bib, name, "called 25:00", **Edit call** and **Move wave** buttons
-(plus a `Wave set by hand` status tag when the racer is pinned), then either a
-live clock plus a **Finish** button, or the elapsed time, the delta and an **Undo** button.
+One racer during a race: bib, name, "called 25:00", **Edit call**, **Move wave** and
+**DNS / DNF** buttons (plus a `Wave set by hand` status tag when the racer is pinned), then
+either a live clock plus a **Finish** button, the elapsed time, the delta and an **Undo**
+button, or — for a racer marked out — a `DNS` / `DNF` status tag and nothing to press.
 It wraps on narrow phones with the action staying on the thumb side (`margin-left: auto`).
 
 **Edit call sits with the call, not with the action.** It and Move wave travel together in
@@ -351,12 +352,25 @@ is warned that a move to an unstarted wave restarts their clock; a racer already
 only go to a wave that has started. A pinned racer shows a `.status-tag` (`--muted` on
 `--navy-bg`, 5.55:1) reading `Wave set by hand`.
 
+**DNS / DNF is the third row editor, built the same way.** The **DNS / DNF** button opens a
+`<select>` — *Racing*, *DNS — did not start*, *DNF — did not finish* — labelled "Is Ana still
+in the race?", with a **Save the status** footer. Same state-not-DOM pattern (`statusEdit`),
+Escape-to-close, focus return, and one editor open at a time across all three. The helper
+line says what the mark does before Save, and says when one won't be accepted: a racer
+already home must have their finish undone first, and DNF waits until their wave has gone.
+A refusal is shown against the select (`aria-invalid`, `role="alert"`). A marked racer's
+row shows a `.status-tag` reading `DNS` or `DNF`, with the words spelled out in a
+visually-hidden span; the wave header counts only racers still in the race
+("1 of 2 home · 1 out").
+
 ### Bib badge (`.bib`)
 Pill on `--navy-bg` with the race number, tabular. Always rendered with a
 visually-hidden `Racer ` prefix so it does not announce as a bare digit.
 
 ### Status tag (`.status-tag`)
-Small `--navy-bg` pill for a non-numeric state — `On course`, `Waiting`.
+Small `--navy-bg` pill for a non-numeric state — `On course`, `Waiting`, `DNS`, `DNF`.
+`--muted` on `--navy-bg`, 5.55:1. `DNS` and `DNF` always carry a visually-hidden "— did not
+start" / "— did not finish", so an abbreviation is never the only thing read out.
 
 ### Podium card (`.podium-card`)
 Up to four per race, and they *are* the automatic prizes — there is no second list of
@@ -475,6 +489,7 @@ information is repeated in a `.racer-sub` line under the name. The name cell is 
 | `tr.is-last` | Furthest from the call | Rank number, and the podium card names them |
 | `.rank-badge.medal.gold` / `.silver` / `.bronze` | 1st, 2nd, 3rd — the three automatic prizes | The place number sits inside the metal pill |
 | `tr.is-running` | Still on course | `On course` / `Waiting` status tag |
+| `tr.is-out` | Marked DNS or DNF — listed under everyone, unranked | Rank shows `—`, a `DNS` / `DNF` status tag, and the sub-line says "did not start" / "did not finish". `--muted` on white, 6.23:1 |
 | `tr.not-eligible` | Under four finished races, out of the grand prize | Rank shows `—`, and the sub-line says "needs 2 more to qualify" |
 | `td.is-dropped` | The race dropped by best-four scoring | `<s>` strikethrough plus a visually-hidden "(dropped)" |
 

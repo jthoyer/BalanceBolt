@@ -446,7 +446,8 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
 .board .col-who { font-weight: 400 }
 .board tbody tr.is-first { background: var(--gold-bg) }
 .board tbody tr.is-last { background: var(--navy-bg) }
-.board tbody tr.is-running { color: var(--muted) }
+/* Still running, or out of the race (DNS / DNF): unranked, so they recede. */
+.board tbody tr.is-running, .board tbody tr.is-out { color: var(--muted) }
 /* The bib pill is --navy-bg, which all but vanishes on a tinted row. White keeps the
    shape readable; the number inside it is what carries the meaning either way. */
 .board tbody tr.is-first .bib, .board tbody tr.is-last .bib { background: #fff }

@@ -75,10 +75,11 @@ function renderControl(v) {
     clock.textContent = '0:00';
   }
 
-  const outstanding = v.list.filter(r => !r.finishAt).length;
+  const racing = v.list.filter(isRacing);
+  const outstanding = racing.filter(r => !r.finishAt).length;
   $('#clockSub').textContent =
     !hasRacers ? 'Nobody on the start list yet.'
-      : !first ? `Waiting on wave 1. ${v.list.length} ready to go.`
+      : !first ? `Waiting on wave 1. ${racing.length} ready to go.`
         : outstanding ? `${outstanding} still out on course.`
           : stopped ? `Race done — clocks stopped on ${fmtClock(stopped - first)}. Head to Results.`
             : 'Everyone is home. Head to Results.';
@@ -93,8 +94,12 @@ function renderControl(v) {
     if (!members.length) return;
 
     const start = waveStart(v, wave);
-    const home = members.filter(r => r.finishAt).length;
-    const done = start && home === members.length;
+    /* DNS / DNF racers stay listed in their wave, so an organiser can find them and hand
+       them back, but they are not counted as anyone the wave is waiting on. */
+    const racing = members.filter(isRacing);
+    const out = members.length - racing.length;
+    const home = racing.filter(r => r.finishAt).length;
+    const done = start && home === racing.length;
 
     const block = document.createElement('section');
     block.className = 'wave-block';
@@ -102,7 +107,7 @@ function renderControl(v) {
       <div class="wave-bar ${start ? (done ? 'done' : 'running') : 'pending'}">
         <div class="wave-bar-main">
           <h3>Wave ${wave}</h3>
-          <p class="wave-meta">${home} of ${members.length} home</p>
+          <p class="wave-meta">${racing.length ? `${home} of ${racing.length} home${out ? ` · ${out} out` : ''}` : `Nobody racing · ${out} out`}</p>
         </div>
         <p class="wave-clock ${waveClockClass(start, stopped)}"${start && !stopped ? ` data-live-from="${start}"` : ''}>${waveClockText(start, stopped)}</p>
       </div>
@@ -118,7 +123,7 @@ function renderControl(v) {
       btn.textContent = `Start wave ${wave}`;
       btn.addEventListener('click', () => {
         if (!confirm(`Start wave ${wave} of race ${currentRace} now? The clock begins immediately.`)) return;
-        const first = members[0];
+        const first = racing[0] || members[0];
         startWave(wave);
         announce(`Wave ${wave} started.`);
         // The Start button is gone now; land on the first racer's Finish button instead.
@@ -220,7 +225,7 @@ function timingRow(r, v, start) {
   /* The two row editors sit together, against the name, away from Finish. */
   const actions = document.createElement('span');
   actions.className = 'timing-actions';
-  actions.append(editCallButton(r), moveWaveButton(r, v));
+  actions.append(editCallButton(r), moveWaveButton(r, v), statusButton(r));
   if (r.waveOverride) {
     const tag = document.createElement('span');
     tag.className = 'status-tag';
@@ -230,11 +235,15 @@ function timingRow(r, v, start) {
   row.insertBefore(actions, row.querySelector('.timing-result'));
   if (callEdit && callEdit.id === r.id) row.append(callEditForm(r, v));
   if (waveEdit && waveEdit.id === r.id) row.append(waveEditForm(r, v));
+  if (statusEdit && statusEdit.id === r.id) row.append(statusEditForm(r, v));
 
   const cell = row.querySelector('.timing-result');
   const res = result(r, v);
 
-  if (res) {
+  if (r.status) {
+    // Out of the race: no clock and no Finish. Clearing the mark is in the editor.
+    cell.append(statusTag(r.status));
+  } else if (res) {
     const elapsed = document.createElement('span');
     elapsed.className = 'timing-elapsed';
     elapsed.textContent = fmtClock(res.elapsed);
@@ -326,7 +335,8 @@ const callEditIds = r => ({
 });
 
 function openCallEdit(r) {
-  waveEdit = null; // one editor open at a time, across both kinds
+  waveEdit = null; // one editor open at a time, across all three kinds
+  statusEdit = null;
   callEdit = {
     id: r.id,
     minutes: String(Math.floor(r.predictedSec / 60)),
@@ -508,6 +518,7 @@ function moveWaveButton(r, v) {
 
 function openWaveEdit(r) {
   callEdit = null;
+  statusEdit = null;
   waveEdit = { id: r.id, choice: r.waveOverride ? String(r.waveOverride) : '', error: null };
   render();
   focusByKey(`wave-select:${r.id}`);
@@ -602,6 +613,133 @@ function waveEditHelp(r, v) {
   ].filter(Boolean).join(' ');
 }
 
+/* ── Marking a racer DNS / DNF ─────────────────────────────────────────── */
+
+/* Same shape and the same reasons as callEdit and waveEdit: the open editor is state, so
+   the four-second poll puts it back as it was. Shape: { id, choice, error }. `choice` is
+   the select's value — '' for racing, 'DNS' or 'DNF'. */
+let statusEdit = null;
+
+const statusEditIds = r => ({
+  form: `statusEdit-${r.number}`,
+  select: `statusSelect-${r.number}`,
+  help: `statusHelp-${r.number}`,
+  error: `statusError-${r.number}`
+});
+
+/** "DNF" on screen, "DNF — did not finish" to a screen reader. One tag, used everywhere. */
+function statusTag(status) {
+  const tag = document.createElement('span');
+  tag.className = 'status-tag';
+  tag.textContent = status;
+  const words = document.createElement('span');
+  words.className = 'visually-hidden';
+  words.textContent = ` — ${STATUS_WORDS[status].toLowerCase()}`;
+  tag.append(words);
+  return tag;
+}
+
+function statusButton(r) {
+  const open = !!statusEdit && statusEdit.id === r.id;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'quiet-button neutral';
+  btn.dataset.focusKey = `status:${r.id}`;
+  btn.textContent = 'DNS / DNF';
+  btn.setAttribute('aria-label', `Mark ${r.name} as did not start or did not finish, currently `
+    + (r.status ? STATUS_WORDS[r.status].toLowerCase() : 'racing'));
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) btn.setAttribute('aria-controls', statusEditIds(r).form);
+  btn.addEventListener('click', () => (open ? closeStatusEdit(r.id) : openStatusEdit(r)));
+  return btn;
+}
+
+function openStatusEdit(r) {
+  callEdit = null;
+  waveEdit = null;
+  statusEdit = { id: r.id, choice: r.status || '', error: null };
+  render();
+  focusByKey(`status-select:${r.id}`);
+}
+
+function closeStatusEdit(id) {
+  statusEdit = null;
+  render();
+  focusByKey(`status:${id}`);
+}
+
+function saveStatusEdit(r) {
+  const state = statusEdit;
+  const choice = state.choice === '' ? null : state.choice;
+  statusEdit = null;
+  const outcome = setRacerStatus(r.id, choice);
+  if (!outcome.ok) {
+    statusEdit = state;
+    state.error = outcome.error;
+    render();
+    focusByKey(`status-select:${r.id}`);
+    return;
+  }
+  focusByKey(`status:${r.id}`);
+  const name = outcome.racer.name;
+  if (outcome.status) announce(`${name} marked ${outcome.status}, ${STATUS_WORDS[outcome.status].toLowerCase()}.`);
+  else if (outcome.was) announce(`${name} is back in the race.`);
+  else announce(`${name} is still racing.`);
+}
+
+function statusEditForm(r, v) {
+  const state = statusEdit;
+  const id = statusEditIds(r);
+  const form = document.createElement('form');
+  form.className = 'timing-edit';
+  form.id = id.form;
+  form.noValidate = true;
+  form.innerHTML = `
+    <label for="${id.select}"></label>
+    <select id="${id.select}" name="status" aria-describedby="${id.help}">
+      <option value="">Racing</option>
+      <option value="DNS">DNS — did not start</option>
+      <option value="DNF">DNF — did not finish</option>
+    </select>
+    <p class="helper-text" id="${id.help}"></p>
+    <p class="form-error hidden" id="${id.error}" role="alert"></p>
+    <div class="dialog-footer">
+      <button type="button" class="secondary-button">Cancel</button>
+      <button type="submit" class="save-button">Save the status</button>
+    </div>`;
+
+  form.querySelector('label').textContent = `Is ${r.name} still in the race?`;
+  const select = form.querySelector('select');
+  select.value = state.choice;
+  select.dataset.focusKey = `status-select:${r.id}`;
+  select.addEventListener('change', () => {
+    if (statusEdit !== state) return; // a poll rebuilt the form; this one is a ghost
+    state.choice = select.value;
+    if (state.error) { state.error = null; clearFieldErrors(form.querySelector('.form-error'), [select]); }
+  });
+
+  form.querySelector('.helper-text').textContent = statusEditHelp(r, v);
+  if (state.error) showFieldError(form.querySelector('.form-error'), state.error, select, { moveFocus: false });
+
+  form.addEventListener('submit', e => { e.preventDefault(); saveStatusEdit(r); });
+  form.querySelector('.secondary-button').addEventListener('click', () => closeStatusEdit(r.id));
+  form.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    closeStatusEdit(r.id);
+  });
+  return form;
+}
+
+/** What a mark is about to do — stated before Save is pressed. */
+function statusEditHelp(r, v) {
+  if (r.finishAt && !r.status) return 'They are already home. Undo their finish before marking them DNS or DNF.';
+  return [
+    'DNS or DNF takes them off the leaderboard and this race does not count toward their series. Racing hands them back.',
+    waveStart(v, v.map.get(r.id)) === null ? 'Their wave has not started, so DNF is not available yet.' : ''
+  ].filter(Boolean).join(' ');
+}
+
 function announceFinish({ racer, res }) {
   const gap = res ? `, ${sayDelta(res.delta)}` : '';
   announce(`Racer ${racer.number}, ${racer.name}, finished${gap}.`);
@@ -622,8 +760,9 @@ const OUTLIER = { kind: 'outlier', eyebrow: 'FURTHEST FROM THE CALL' };
 
 function renderBoard(v) {
   const rows = ranked(v);
-  const running = v.list.filter(r => !r.finishAt);
-  $('#boardEmpty').classList.toggle('hidden', rows.length + running.length > 0);
+  const running = v.list.filter(r => isRacing(r) && !r.finishAt);
+  const out = v.list.filter(r => r.status);
+  $('#boardEmpty').classList.toggle('hidden', rows.length + running.length + out.length > 0);
 
   const podium = $('#podium');
   podium.innerHTML = '';
@@ -680,6 +819,28 @@ function renderBoard(v) {
     tr.querySelector('.roster-name').textContent = r.name;
     body.append(tr);
   });
+
+  /* DNS and DNF sit under everyone, unranked: they are part of the race, not of the result. */
+  out.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'is-out';
+    tr.innerHTML = `
+      <td class="col-rank">—</td>
+      <th scope="row" class="col-who">
+        <span class="racer-cell">
+          <span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number"></span></span>
+          <span class="roster-name"></span>
+        </span>
+        <span class="racer-sub">called ${fmtSec(r.predictedSec)} · ${STATUS_WORDS[r.status].toLowerCase()}</span>
+      </th>
+      <td class="num col-wide">${fmtSec(r.predictedSec)}</td>
+      <td class="num col-wide">—</td>
+      <td class="num"></td>`;
+    tr.querySelector('.bib-number').textContent = String(r.number);
+    tr.querySelector('.roster-name').textContent = r.name;
+    tr.lastElementChild.append(statusTag(r.status));
+    body.append(tr);
+  });
 }
 
 /* The place number is `aria-hidden` because the eyebrow beside it already says
@@ -721,7 +882,7 @@ function renderPrizes(v) {
     const card = prizeCard({
       title: p.label,
       winner: `#${racer.number} ${racer.name}`,
-      detail: res ? fmtDelta(res.delta) : 'Still out on course',
+      detail: res ? fmtDelta(res.delta) : racer.status ? STATUS_WORDS[racer.status] : 'Still out on course',
       extra: 'adhoc'
     });
     const btn = document.createElement('button');
@@ -773,13 +934,13 @@ function renderSeries() {
     if (i === 0 && person.eligible) tr.className = 'is-first';
     if (!person.eligible) tr.classList.add('not-eligible');
 
-    // "—" never started this race, "TBC" on the start list but not home yet.
+    // "—" never entered this race, "DNS"/"DNF" marked out of it, "TBC" on the start list but not home yet.
     const perRace = [];
     for (let n = 1; n <= RACE_COUNT; n++) {
       const diff = person.diffs[n];
       perRace.push({
         n,
-        text: diff != null ? fmtGap(diff) : (n in person.diffs ? 'TBC' : '—'),
+        text: diff != null ? fmtGap(diff) : person.statuses[n] || (n in person.diffs ? 'TBC' : '—'),
         dropped: person.dropped.includes(n)
       });
     }

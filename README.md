@@ -16,7 +16,7 @@ not a picture of one.
 | Page | Who has it open | What is on it |
 |---|---|---|
 | **`index.html`** | The sign-up table, a phone passed around | Name, predicted minutes and seconds, confirmation of race number and wave, the start list |
-| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, an Edit call button on each racer, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
+| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, Edit call, Move wave and DNS / DNF buttons on each racer, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
 | **`admin.html`** | Whoever is setting up on the day | A splash with one button to each of the two pages above — nothing else |
 
 `index.html` and `boltresults.html` are **independent — neither links to the other**.
@@ -69,10 +69,21 @@ being passed around can do on its own.
 6. **Finish** — stop each racer's clock individually as they cross, either with the
    Finish button on their row or by typing their number into **Finish by number**. The
    global clock and every other wave keep running.
-7. **Last one home** — when the final racer's clock is stopped, the race clock *and*
+7. **Last one home** — when the final racer still in the race has their clock stopped (nobody marked DNS or DNF is waited for), the race clock *and*
    every wave clock stop together, frozen on that instant. Nothing on the page carries
    on counting once the race is over. Undo a finish and they all start running again.
-8. **Results** — the leaderboard updates live, ranked by the gap between actual and
+8. **DNS / DNF** — on `boltresults.html` → **Timing**, **DNS / DNF** on a racer's row marks
+   them *did not start* or *did not finish*, and **Racing** hands them back. A marked racer
+   has no result: they sit unranked under everyone on the leaderboard, the race does not
+   count toward their series (the Series table shows `DNS` / `DNF` for it), they never steer
+   a wave's gun, and the race is over once everyone still racing is home. Before the first
+   gun a DNS is left out of the five-minute grouping, so a no-show doesn't shape anyone's
+   wave. DNF is only accepted once their wave has started, and neither mark is accepted on
+   someone already home — undo the finish first. **Clear times** clears a DNF along with the
+   times, but keeps a DNS, which is a start-list decision like a hand-set wave. This needs
+   the updated `apps-script.gs` (it adds a `status` column to `Racers`) — paste it in
+   **before** deploying the front end, or every mark is dropped and undone on the next poll.
+9. **Results** — the leaderboard updates live, ranked by the gap between actual and
    predicted time, shown in minutes and seconds.
 
 ## The series

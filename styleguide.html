@@ -404,7 +404,7 @@
 
         <div class="sg-sub">
           <h3>Wave bar &amp; timing row</h3>
-          <p class="sg-sub-note"><code>.wave-bar</code> — race-control header for one wave; background and words both encode state. <code>.timing-row</code> — bib, name, call, <strong>Edit call</strong> and <strong>Move wave</strong> buttons in <code>.timing-actions</code> (plus a <code>Wave set by hand</code> status tag when pinned), then a live clock and Finish, or the elapsed time, delta and Undo. <code>.timing-actions</code> carries <code>margin-right: auto</code> so it stays against the name while the clock and Finish hold the right edge: Finish is the one control that must never be pressed by accident, so nothing else is parked beside it.</p>
+          <p class="sg-sub-note"><code>.wave-bar</code> — race-control header for one wave; background and words both encode state. <code>.timing-row</code> — bib, name, call, <strong>Edit call</strong>, <strong>Move wave</strong> and <strong>DNS / DNF</strong> buttons in <code>.timing-actions</code> (plus a <code>Wave set by hand</code> status tag when pinned), then a live clock and Finish, the elapsed time, delta and Undo, or — for a racer marked out — a <code>DNS</code> / <code>DNF</code> status tag. <code>.timing-actions</code> carries <code>margin-right: auto</code> so it stays against the name while the clock and Finish hold the right edge: Finish is the one control that must never be pressed by accident, so nothing else is parked beside it.</p>
 
           <div class="sg-demo">
             <div class="sg-demo-label"><code>.pending</code> — not started, Finish is disabled</div>
@@ -730,6 +730,11 @@
                 <td class="col-rank">—</td>
                 <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">2</span></span><span class="roster-name">Priya</span></span><span class="racer-sub">called 11:40 · running 12:41</span></th>
                 <td class="num"><span class="status-tag">On course</span></td>
+              </tr>
+              <tr class="is-out">
+                <td class="col-rank">—</td>
+                <th scope="row" class="col-who"><span class="racer-cell"><span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number">9</span></span><span class="roster-name">Sam</span></span><span class="racer-sub">called 22:00 · did not finish</span></th>
+                <td class="num"><span class="status-tag">DNF<span class="visually-hidden"> — did not finish</span></span></td>
               </tr>
               <tr class="not-eligible">
                 <td class="col-rank">—</td>
