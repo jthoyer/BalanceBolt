@@ -304,12 +304,13 @@ shows the same target. They are cleared by *Clear times* and *Wipe race*.
 so its handler hands focus to **+30s**.
 
 ### Timing row (`.timing-row`)
-One racer during a race: bib, name, "called 25:00", an **Edit call** button, then either a
+One racer during a race: bib, name, "called 25:00", **Edit call** and **Move wave** buttons
+(plus a `Wave set by hand` status tag when the racer is pinned), then either a
 live clock plus a **Finish** button, or the elapsed time, the delta and an **Undo** button.
 It wraps on narrow phones with the action staying on the thumb side (`margin-left: auto`).
 
-**Edit call sits with the call, not with the action.** It carries its own
-`margin-right: auto`, so the two auto margins share the row's free space and leave it
+**Edit call sits with the call, not with the action.** It and Move wave travel together in
+`.timing-actions`, which carries `margin-right: auto`, so the two auto margins share the row's free space and leave it
 against the name while the clock and Finish stay on the right edge — and on a narrow phone
 the row wraps between them. That placement is deliberate: Finish is the one control in this
 app that must never be pressed by accident, so nothing else is parked beside it. The same
@@ -337,6 +338,17 @@ before the first gun the edit can re-bucket the racer *and a neighbour*, since t
 five-minute groups are drawn off the whole field; after `wavesLocked` the wave is fixed and
 only the time they are measured against changes; and if they are already home, the
 leaderboard moves under them.
+
+### Wave mover (`.timing-edit`, second use)
+The form **Move wave** opens: one labelled `<select>` (`Auto`, then Wave 1–4, a started wave
+marked `(started)`), one line of `.helper-text`, a `.form-error`, and the same Cancel /
+**Save the wave** footer. It reuses the call editor's container, state-not-DOM pattern
+(`waveEdit` in `results.js`), Escape-to-close and focus return. Opening either editor closes
+the other, so one form is open on the page at a time. The helper line states the consequence
+before Save: before the gun a pinned racer stays put while everyone else regroups; after the
+lock only they move and their clock runs from the new wave's gun; a racer already home can
+only go to a wave that has started. A pinned racer shows a `.status-tag` (`--muted` on
+`--navy-bg`, 5.55:1) reading `Wave set by hand`.
 
 ### Bib badge (`.bib`)
 Pill on `--navy-bg` with the race number, tabular. Always rendered with a

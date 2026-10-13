@@ -844,6 +844,113 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(parsePredictedTime('  ', '  '), parsePredictedTime('', ''), 'whitespace is still blank');
   });
 
+  /* ═══ Moving a racer by hand ══════════════════════════════════════════ */
+
+  group('setRacerWave — an organiser putting one racer in a wave');
+
+  /* Ana 10:00, Bea 10:30, Cal 30:00. Auto: Cal alone in wave 1, Ana and Bea in wave 2. */
+  const trio = (extra = {}) => setDb({ 1: Object.assign({ racers: [
+    racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 630), racer('c', 3, 'Cal', 1800)
+  ], wavesLocked: false }, extra) });
+
+  test('before the gun a pinned racer sits in the wave chosen for them', () => {
+    trio();
+    eq(raceView(1).map.get('a'), 2, 'auto puts Ana with Bea');
+    const out = setRacerWave('a', 1);
+    eq(out.ok, true);
+    eq(out.was, 2);
+    eq(out.wave, 1);
+    eq(raceView(1).map.get('a'), 1);
+    eq(race(1).racers[0].wave, null, 'nothing is stored in the wave column before the lock');
+  });
+
+  test('a pinned racer is left out of the grouping, so nobody else moves', () => {
+    trio();
+    setRacerWave('b', 4);
+    const map = raceView(1).map;
+    eq(map.get('b'), 4);
+    eq(map.get('c'), 1, 'Cal is still the slow wave');
+    eq(map.get('a'), 2, 'Ana keeps her auto wave');
+  });
+
+  test('a pin survives an edited call and later sign-ups', () => {
+    trio();
+    setRacerWave('a', 1);
+    setPredictedTime('a', 300);
+    addRacer('Dee', 590);
+    eq(raceView(1).map.get('a'), 1, 'the pin wins over the predicted time');
+  });
+
+  test('Auto hands a racer back to the split', () => {
+    trio();
+    setRacerWave('a', 1);
+    const out = setRacerWave('a', null);
+    eq(out.pinned, false);
+    eq(raceView(1).map.get('a'), 2);
+    eq(race(1).racers[0].waveOverride, null);
+  });
+
+  test('the first gun locks a pin in like any other wave', () => {
+    trio();
+    setRacerWave('a', 1);
+    startWave(1);
+    eq(race(1).racers.map(r => r.wave), [1, 2, 1]);
+  });
+
+  test('after the lock only the moved racer moves, and their clock follows the new wave', () => {
+    trio({ wavesLocked: true, waveStarts: { 1: T, 2: T + 60000 } });
+    race(1).racers.forEach((r, i) => { r.wave = [2, 2, 1][i]; });
+    race(1).racers[0].finishAt = T + 660000;
+    eq(result(race(1).racers[0], raceView(1)).elapsed, 600000, 'measured from wave 2');
+    const out = setRacerWave('a', 1);
+    eq(out.ok, true);
+    eq(race(1).racers[0].wave, 1, 'the stored wave changes, not just the pin');
+    eq(raceView(1).map.get('b'), 2, 'Bea stays put');
+    eq(result(race(1).racers[0], raceView(1)).elapsed, 660000, 'now measured from wave 1');
+  });
+
+  test('clearing a pin after the lock leaves the racer where they are', () => {
+    trio({ wavesLocked: true, waveStarts: { 1: T } });
+    race(1).racers.forEach((r, i) => { r.wave = [2, 2, 1][i]; });
+    setRacerWave('a', 3);
+    setRacerWave('a', null);
+    eq(raceView(1).map.get('a'), 3);
+  });
+
+  test('a racer who is home cannot move to a wave that has not started', () => {
+    trio({ wavesLocked: true, waveStarts: { 1: T } });
+    race(1).racers.forEach((r, i) => { r.wave = [1, 2, 1][i]; });
+    race(1).racers[0].finishAt = T + 600000;
+    eq(setRacerWave('a', 2).ok, false);
+    eq(race(1).racers[0].wave, 1, 'and nothing changed');
+  });
+
+  test('a wave outside 1 to 4 is refused', () => {
+    trio();
+    eq(setRacerWave('a', 0).ok, false);
+    eq(setRacerWave('a', 5).ok, false, 'four waves is the cap');
+    eq(setRacerWave('a', 1.5).ok, false);
+    eq(setRacerWave('nope', 1).ok, false);
+    eq(race(1).racers[0].waveOverride, null);
+  });
+
+  test('cleanRace keeps a real pin and drops anything else', () => {
+    const out = cleanRace({ racers: [
+      { id: 'a', number: 1, name: 'A', predictedSec: 60, waveOverride: '3' },
+      { id: 'b', number: 2, name: 'B', predictedSec: 60, waveOverride: 7 },
+      { id: 'c', number: 3, name: 'C', predictedSec: 60 }
+    ] });
+    eq(out.racers.map(r => r.waveOverride), [3, null, null]);
+  });
+
+  test('Clear times keeps the pins — they are a decision, not a time', () => {
+    trio();
+    setRacerWave('a', 1);
+    startWave(1);
+    resetTimes();
+    eq(raceView(1).map.get('a'), 1);
+  });
+
   /* ═══ Editing a call ════════════════════════════════════════════════════ */
 
   group('setPredictedTime — correcting a call, and the re-bucketing that follows');
@@ -993,6 +1100,16 @@ globalThis.__TESTS_DONE__ = (async function () {
       eq(outbox[0].action, 'setPredictedTime');
       eq(outbox[0].payload.id, 'a');
       eq(outbox[0].payload.predictedSec, 900);
+    });
+  });
+
+  await atest('a hand move is queued for the sheet, with the stored wave only once locked', async () => {
+    trio();
+    await withStubbedSync(async () => {
+      setRacerWave('a', 1);
+      eq(outbox[0].action, 'setWaveOverride');
+      eq(outbox[0].payload.waveOverride, 1);
+      eq(outbox[0].payload.wave, null, 'before the lock the wave column is left alone');
     });
   });
 

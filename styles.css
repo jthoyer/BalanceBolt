@@ -385,7 +385,8 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
    accident, so nothing else is parked next to it. The auto margin here and the one on
    .timing-result share the free space between them, which puts the time and its button on
    the right edge and this button on the left — and keeps both when the row wraps. */
-.timing-row > .quiet-button { margin-right: auto }
+/* Edit call and Move wave travel together in .timing-actions, which carries the auto margin. */
+.timing-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-right: auto }
 
 /* Correcting one racer's call. Drops onto its own line inside the row — the same
    flex-basis trick .start-button uses inside the wave bar — so the form never squeezes
@@ -396,6 +397,7 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
   border: 1px solid var(--line-strong); border-radius: 9px; background: var(--canvas);
 }
 .timing-edit .time-field { margin: 0 }        /* the form's own padding already spaces it */
+.timing-edit > label:first-child { margin-top: 0 }
 .timing-edit .dialog-footer { margin-top: 16px }
 
 .danger-zone { margin: 32px 0 24px; padding: 20px 18px; border: 1px dashed var(--line-strong); border-radius: 9px }

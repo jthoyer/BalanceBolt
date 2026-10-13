@@ -46,6 +46,7 @@ function emptyDb() {
 }
 
 const validRace = n => Number.isInteger(n) && n >= 1 && n <= RACE_COUNT;
+const validWave = w => Number.isInteger(w) && w >= 1 && w <= MAX_WAVES;
 
 /** Coerce whatever came off the wire or out of storage into the shape we expect. */
 function cleanRace(src) {
@@ -69,6 +70,7 @@ function cleanRace(src) {
       name: String(r.name),
       predictedSec: Number(r.predictedSec),
       wave: r.wave ? Number(r.wave) : null,
+      waveOverride: validWave(Number(r.waveOverride)) ? Number(r.waveOverride) : null,
       finishAt: r.finishAt ? Number(r.finishAt) : null
     })),
     waveStarts,
@@ -297,7 +299,14 @@ function groupByPredicted(list) {
   return groups.reverse();
 }
 
-/** Waves stay fluid — and grouped by predicted time — until the first gun goes off. */
+/**
+ * Waves stay fluid — and grouped by predicted time — until the first gun goes off.
+ *
+ * A racer an organiser has put in a wave by hand (`waveOverride`) is the exception: they
+ * sit in that wave whatever the field does, and they are left out of the five-minute
+ * grouping, so they never drag anyone else's wave around. Everyone else regroups as normal.
+ * Once locked, the stored wave wins for everybody, and a hand move writes the stored wave.
+ */
 function buildWaveMap(data, list) {
   const map = new Map();
   if (data.wavesLocked) {
@@ -305,9 +314,10 @@ function buildWaveMap(data, list) {
     list.forEach(r => map.set(r.id, Number(r.wave) || fallback));
     return map;
   }
-  groupByPredicted(list).forEach((group, i) => {
+  groupByPredicted(list.filter(r => !r.waveOverride)).forEach((group, i) => {
     group.forEach(racer => map.set(racer.id, i + 1));
   });
+  list.forEach(r => { if (r.waveOverride) map.set(r.id, r.waveOverride); });
   return map;
 }
 
@@ -647,6 +657,7 @@ function addRacer(name, predictedSec) {
     name,
     predictedSec,
     wave: data.wavesLocked ? nextOpenWave(data) : null,
+    waveOverride: null,
     finishAt: null
   };
   data.racers.push(racer);
@@ -698,6 +709,41 @@ function setPredictedTime(id, predictedSec) {
   renderPage();
 
   return { ok: true, racer, was, wave: raceView().map.get(id), locked: data.wavesLocked };
+}
+
+/**
+ * Put one racer in a wave by hand — an organiser's action on race control. `wave` is 1 to
+ * MAX_WAVES, or null to hand them back to the automatic split.
+ *
+ * Before the first gun the choice is stored as a pin (`waveOverride`) and buildWaveMap()
+ * honours it on every regroup, so it survives later sign-ups and Edit call. The first gun
+ * locks it in like any other wave. After the lock, moving a racer writes their stored wave
+ * too — only they move, nobody else does — and their clock runs from the new wave's gun.
+ * Clearing the pin after the lock leaves them where they are: auto means "where the lock
+ * put you", and nothing regroups mid-race.
+ *
+ * One move is refused: a racer who is already home cannot go to a wave that has not
+ * started, because a finish with no start is not a result.
+ *
+ * Returns `{ ok, racer, was, wave, locked, pinned }`, or `{ ok: false, error }`.
+ */
+function setRacerWave(id, wave) {
+  const data = race();
+  const racer = data.racers.find(r => r.id === id);
+  if (!racer) return { ok: false, error: 'No racer with that number.' };
+  if (wave !== null && !validWave(wave)) return { ok: false, error: `Pick a wave from 1 to ${MAX_WAVES}.` };
+  if (wave !== null && racer.finishAt && data.waveStarts[wave] == null) {
+    return { ok: false, error: `${racer.name} is already home, and wave ${wave} has not started.` };
+  }
+
+  const was = raceView().map.get(id);
+  racer.waveOverride = wave;
+  if (data.wavesLocked && wave !== null) racer.wave = wave;
+  save();
+  queue('setWaveOverride', { id, waveOverride: wave, wave: data.wavesLocked ? racer.wave : null });
+  renderPage();
+
+  return { ok: true, racer, was, wave: raceView().map.get(id), locked: data.wavesLocked, pinned: wave !== null };
 }
 
 function startWave(wave) {
