@@ -38,8 +38,8 @@ being passed around can do on its own.
 2. **Waves** — everyone whose predicted time is within **five minutes** of each other
    goes in the same wave, so a wave leaves together and comes home together. Wave 1 is
    the **slowest** calls and the last wave the quickest, so the waves go off in number
-   order and come home together. Four waves is a hard cap: if the field spreads across more than
-   four five-minute groups, the closest neighbouring groups are merged until four
+   order and come home together. Six waves is a hard cap: if the field spreads across more than
+   six five-minute groups, the closest neighbouring groups are merged until six
    remain, so one wave may span more than five minutes. The grouping
    recalculates as people sign up and freezes the moment the first wave starts. Anyone
    who signs up after that joins the next wave still waiting on the line.
@@ -67,7 +67,7 @@ being passed around can do on its own.
    once, the last to reach the sheet wins. A wave started early or late does not shift anyone else's target. The race clock at the top runs from the first gun and stays stuck
    to the top of the screen while you scroll.
 6. **Finish** — stop each racer's clock individually as they cross, either with the
-   Finish button on their row or by typing their number into **Finish by number**. The
+   Finish button on their row or by typing their name into **Finish by name**. The
    global clock and every other wave keep running.
 7. **Last one home** — when the final racer still in the race has their clock stopped (nobody marked DNS or DNF is waited for), the race clock *and*
    every wave clock stop together, frozen on that instant. Nothing on the page carries
