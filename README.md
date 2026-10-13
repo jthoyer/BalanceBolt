@@ -50,7 +50,15 @@ being passed around can do on its own.
    the time they are measured against changes, which is what makes a post-race correction
    possible at all. The sign-up sheet cannot do this: it is a phone passed hand to hand at
    the start line, and its start list is deliberately read-only.
-4. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
+4. **Moving someone by hand** — on `boltresults.html` → **Timing**, **Move wave** on a
+   racer's row puts them in any wave from 1 to 4, whatever their call says. Before the first
+   gun they stay in that wave while everyone else regroups around them; **Auto** hands them
+   back. After the gun only they move, and their clock runs from their new wave's start. A
+   racer already running can move to a wave that hasn't started, and their clock starts
+   again from that gun. A racer already home can only move to a wave that has started. A hand-set
+   racer doesn't steer their new wave's gun time. A hand-set wave survives **Clear times**. This needs the updated `apps-script.gs` (it adds a
+   `waveOverride` column to `Racers`), so paste that in before using it on a shared sheet.
+5. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
    and its own clock. Once the first wave is off, every wave still on the line counts down
    to a **target start** that brings it home with the first wave: the first gun plus the
    difference between the two waves' median calls. At zero it says **Start now** — it never
@@ -58,13 +66,13 @@ being passed around can do on its own.
    go to the sheet, so every phone counts down to the same target; if two phones nudge at
    once, the last to reach the sheet wins. A wave started early or late does not shift anyone else's target. The race clock at the top runs from the first gun and stays stuck
    to the top of the screen while you scroll.
-5. **Finish** — stop each racer's clock individually as they cross, either with the
+6. **Finish** — stop each racer's clock individually as they cross, either with the
    Finish button on their row or by typing their number into **Finish by number**. The
    global clock and every other wave keep running.
-6. **Last one home** — when the final racer's clock is stopped, the race clock *and*
+7. **Last one home** — when the final racer's clock is stopped, the race clock *and*
    every wave clock stop together, frozen on that instant. Nothing on the page carries
    on counting once the race is over. Undo a finish and they all start running again.
-7. **Results** — the leaderboard updates live, ranked by the gap between actual and
+8. **Results** — the leaderboard updates live, ranked by the gap between actual and
    predicted time, shown in minutes and seconds.
 
 ## The series

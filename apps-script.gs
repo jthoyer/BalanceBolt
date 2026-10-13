@@ -12,6 +12,8 @@
  *
  * The sheets (Racers, Waves, Prizes, Meta) are created automatically on first use.
  * A wave's countdown nudge is a Meta row keyed `nudge:<race>:<wave>`, value in seconds.
+ * A racer put in a wave by hand carries it in the Racers `waveOverride` column (1–4, or blank
+ * for automatic). The column is added to an existing sheet the first time it is touched.
  * Every row is tagged with a race number, 1 to 5, and every action is scoped to one race.
  * A sheet left over from the single-race version is migrated on first touch: a `race`
  * column is inserted and every existing row is filed under race 1.
@@ -22,9 +24,10 @@
 
 var SHEET_ID = '1exilWhjiLgbO1sGGSXqYvk20W5K5ANy3xRh0n1qCRfQ';
 var RACE_COUNT = 5;
+var MAX_WAVES = 4;
 
 var SHEETS = {
-  Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt'],
+  Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt', 'waveOverride'],
   Waves: ['race', 'wave', 'startedAt'],
   Prizes: ['race', 'id', 'label', 'racerId', 'awardedAt'],
   Meta: ['key', 'value']
@@ -53,7 +56,17 @@ function sheet_(name) {
     return sh;
   }
   migrateSheet_(sh, name);
+  addMissingColumns_(sh, name);
   return sh;
+}
+
+/* Columns are only ever added at the right-hand end, so every row already on the sheet
+   keeps its positions and simply reads blank in the new column. */
+function addMissingColumns_(sh, name) {
+  var want = SHEETS[name];
+  if (sh.getLastColumn() >= want.length) return;
+  var have = sh.getLastColumn();
+  sh.getRange(1, have + 1, 1, want.length - have).setValues([want.slice(have)]);
 }
 
 /** Single-race sheet → series sheet. Everything already there becomes race 1. */
@@ -210,6 +223,7 @@ function doGet() {
         name: String(r.name),
         predictedSec: Number(r.predictedSec),
         wave: r.wave === '' ? null : Number(r.wave),
+        waveOverride: (r.waveOverride === '' || r.waveOverride == null) ? null : Number(r.waveOverride),
         finishAt: r.finishAt === '' ? null : Number(r.finishAt)
       });
     });
@@ -277,7 +291,8 @@ var ACTIONS = {
       name: racer.name,
       predictedSec: Number(racer.predictedSec),
       wave: racer.wave || '',
-      finishAt: ''
+      finishAt: '',
+      waveOverride: racer.waveOverride || ''
     });
   },
 
@@ -285,7 +300,11 @@ var ACTIONS = {
     var race = raceOf_(body);
     (body.assignments || []).forEach(function (a) {
       var row = findRowWhere_('Racers', { race: race, id: a.id });
-      if (row) setCell_('Racers', row, 'wave', a.wave);
+      if (!row) return;
+      /* A wave set by hand on another phone wins over this phone's split: the phone that
+         fired the gun may not have polled the move yet, and the pin is the later decision. */
+      var pin = getCell_('Racers', row, 'waveOverride');
+      setCell_('Racers', row, 'wave', pin === '' ? a.wave : Number(pin));
     });
     setMeta_('wavesLocked:' + race, 'true');
   },
@@ -312,6 +331,22 @@ var ACTIONS = {
     if (!(wave >= 1 && wave <= 20) || Math.floor(wave) !== wave) throw new Error('Bad wave: ' + body.wave);
     if (!(Math.abs(sec) <= 3600) || Math.floor(sec) !== sec) throw new Error('Bad nudge: ' + body.nudgeSec);
     setMeta_('nudge:' + race + ':' + wave, sec);
+  },
+
+  /* An organiser putting one racer in a wave by hand, or handing them back to auto (null).
+     Carries whole values, so a retry writes the same cells twice. `wave` is only sent once
+     waves are locked, and then it is the racer's stored wave as well; before the lock it is
+     null and the wave column is left empty, the same as everyone else's. */
+  setWaveOverride: function (body) {
+    var race = raceOf_(body);
+    var pin = body.waveOverride;
+    var okWave = function (w) { return Math.floor(w) === w && w >= 1 && w <= MAX_WAVES; };
+    if (pin !== null && !okWave(Number(pin))) throw new Error('Bad wave: ' + pin);
+    if (body.wave != null && !okWave(Number(body.wave))) throw new Error('Bad wave: ' + body.wave);
+    var row = findRowWhere_('Racers', { race: race, id: body.id });
+    if (!row) throw new Error('No racer ' + body.id + ' in race ' + race);
+    setCell_('Racers', row, 'waveOverride', pin === null ? '' : Number(pin));
+    if (body.wave != null) setCell_('Racers', row, 'wave', Number(body.wave));
   },
 
   finish: function (body) {

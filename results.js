@@ -217,8 +217,19 @@ function timingRow(r, v, start) {
   row.innerHTML = '<span class="timing-result"></span>';
   row.prepend(rosterWho(r));
 
-  row.insertBefore(editCallButton(r), row.querySelector('.timing-result'));
+  /* The two row editors sit together, against the name, away from Finish. */
+  const actions = document.createElement('span');
+  actions.className = 'timing-actions';
+  actions.append(editCallButton(r), moveWaveButton(r, v));
+  if (r.waveOverride) {
+    const tag = document.createElement('span');
+    tag.className = 'status-tag';
+    tag.textContent = 'Wave set by hand';
+    actions.append(tag);
+  }
+  row.insertBefore(actions, row.querySelector('.timing-result'));
   if (callEdit && callEdit.id === r.id) row.append(callEditForm(r, v));
+  if (waveEdit && waveEdit.id === r.id) row.append(waveEditForm(r, v));
 
   const cell = row.querySelector('.timing-result');
   const res = result(r, v);
@@ -315,6 +326,7 @@ const callEditIds = r => ({
 });
 
 function openCallEdit(r) {
+  waveEdit = null; // one editor open at a time, across both kinds
   callEdit = {
     id: r.id,
     minutes: String(Math.floor(r.predictedSec / 60)),
@@ -462,6 +474,131 @@ function callEditHelp(r, v) {
       ? `Waves are locked in, so wave ${v.map.get(r.id)} stays wave ${v.map.get(r.id)}.`
       : 'Waves have not locked yet, so this can move them — and whoever is closest to them — into a different wave.',
     r.finishAt ? 'They are already home, so their result on the board changes too.' : ''
+  ].filter(Boolean).join(' ');
+}
+
+/* ── Moving a racer to another wave ────────────────────────────────────── */
+
+/* Same shape and the same reasons as callEdit above: the open editor is state, so the
+   four-second poll puts it back as it was. Shape: { id, choice, error }. `choice` is the
+   select's value as a string — '' for auto, '1'–'4' for a wave. */
+let waveEdit = null;
+
+const waveEditIds = r => ({
+  form: `waveEdit-${r.number}`,
+  select: `waveSelect-${r.number}`,
+  help: `waveHelp-${r.number}`,
+  error: `waveError-${r.number}`
+});
+
+function moveWaveButton(r, v) {
+  const open = !!waveEdit && waveEdit.id === r.id;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'quiet-button neutral';
+  btn.dataset.focusKey = `wave:${r.id}`;
+  btn.textContent = 'Move wave';
+  btn.setAttribute('aria-label', `Move ${r.name} to another wave, currently wave ${v.map.get(r.id)}`
+    + (r.waveOverride ? ', set by hand' : ''));
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) btn.setAttribute('aria-controls', waveEditIds(r).form);
+  btn.addEventListener('click', () => (open ? closeWaveEdit(r.id) : openWaveEdit(r)));
+  return btn;
+}
+
+function openWaveEdit(r) {
+  callEdit = null;
+  waveEdit = { id: r.id, choice: r.waveOverride ? String(r.waveOverride) : '', error: null };
+  render();
+  focusByKey(`wave-select:${r.id}`);
+}
+
+function closeWaveEdit(id) {
+  waveEdit = null;
+  render();
+  focusByKey(`wave:${id}`);
+}
+
+function saveWaveEdit(r) {
+  const state = waveEdit;
+  const choice = state.choice === '' ? null : Number(state.choice);
+  waveEdit = null;
+  const outcome = setRacerWave(r.id, choice);
+  if (!outcome.ok) {
+    waveEdit = state;
+    state.error = outcome.error;
+    render();
+    focusByKey(`wave-select:${r.id}`);
+    return;
+  }
+  focusByKey(`wave:${r.id}`);
+  const name = outcome.racer.name;
+  if (outcome.pinned) announce(`${name} is in wave ${outcome.wave}, set by hand.`);
+  else announce(`${name} is back on auto. Wave ${outcome.wave}${outcome.locked ? ', unchanged' : ' for now'}.`);
+}
+
+function waveEditForm(r, v) {
+  const state = waveEdit;
+  const id = waveEditIds(r);
+  const form = document.createElement('form');
+  form.className = 'timing-edit';
+  form.id = id.form;
+  form.noValidate = true;
+  form.innerHTML = `
+    <label for="${id.select}"></label>
+    <select id="${id.select}" name="wave" aria-describedby="${id.help}"></select>
+    <p class="helper-text" id="${id.help}"></p>
+    <p class="form-error hidden" id="${id.error}" role="alert"></p>
+    <div class="dialog-footer">
+      <button type="button" class="secondary-button">Cancel</button>
+      <button type="submit" class="save-button">Save the wave</button>
+    </div>`;
+
+  form.querySelector('label').textContent = `Which wave does ${r.name} start in?`;
+  const select = form.querySelector('select');
+  const current = v.map.get(r.id);
+  const auto = document.createElement('option');
+  auto.value = '';
+  auto.textContent = v.data.wavesLocked ? `Auto — stay in wave ${current}` : 'Auto — by predicted time';
+  select.append(auto);
+  for (let w = 1; w <= MAX_WAVES; w++) {
+    const opt = document.createElement('option');
+    opt.value = String(w);
+    opt.textContent = `Wave ${w}` + (waveStart(v, w) !== null ? ' (started)' : '');
+    select.append(opt);
+  }
+  select.value = state.choice;
+  select.dataset.focusKey = `wave-select:${r.id}`;
+  select.addEventListener('change', () => {
+    if (waveEdit !== state) return; // a poll rebuilt the form; this one is a ghost
+    state.choice = select.value;
+    if (state.error) { state.error = null; clearFieldErrors(form.querySelector('.form-error'), [select]); }
+  });
+
+  form.querySelector('.helper-text').textContent = waveEditHelp(r, v);
+  if (state.error) showFieldError(form.querySelector('.form-error'), state.error, select, { moveFocus: false });
+
+  form.addEventListener('submit', e => { e.preventDefault(); saveWaveEdit(r); });
+  form.querySelector('.secondary-button').addEventListener('click', () => closeWaveEdit(r.id));
+  form.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    e.preventDefault();
+    closeWaveEdit(r.id);
+  });
+  return form;
+}
+
+/** What a move is about to do — stated before Save is pressed, because it differs. */
+function waveEditHelp(r, v) {
+  return [
+    v.data.wavesLocked
+      ? 'Waves are locked in, so only this racer moves. Their clock runs from the new wave\'s start.'
+      : 'A racer set by hand stays in that wave when everyone else regroups. Auto hands them back.',
+    r.finishAt
+      ? 'They are already home, so they can only move to a wave that has started, and their time changes.'
+      : waveStart(v, v.map.get(r.id)) !== null
+        ? 'They are already running. Move them to a wave that has not started and their clock starts again from that gun.'
+        : ''
   ].filter(Boolean).join(' ');
 }
 
