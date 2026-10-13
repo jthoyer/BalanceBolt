@@ -79,13 +79,13 @@
 
         <form class="panel quick-finish" id="quickFinishForm" novalidate>
           <div class="panel-heading">
-            <h2>Finish by number</h2>
-            <p class="helper-text" id="quickFinishHelp">Quickest way to log a finisher: type their race number and stop the clock.</p>
+            <h2>Finish by name</h2>
+            <p class="helper-text" id="quickFinishHelp">Quickest way to log a finisher: type their name and stop the clock.</p>
           </div>
           <div class="quick-finish-row">
             <span class="field">
-              <label for="quickFinishInput">Race number</label>
-              <input id="quickFinishInput" inputmode="numeric" autocomplete="off" placeholder="e.g. 7" aria-describedby="quickFinishHelp" />
+              <label for="quickFinishInput">Racer name</label>
+              <input id="quickFinishInput" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="e.g. Ada" aria-describedby="quickFinishHelp" />
             </span>
             <button class="save-button" type="submit">Stop their clock</button>
           </div>

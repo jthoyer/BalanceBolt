@@ -320,7 +320,7 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
 
 /* ── Race control ────────────────────────────────────────── */
 .quick-finish-row { display: grid; gap: 12px }
-.quick-finish input { font-size: 22px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums }
+.quick-finish input { font-size: 22px; font-weight: 700 }
 
 .wave-list { display: flex; flex-direction: column; gap: 12px }
 .wave-block { border: 1px solid var(--line); border-radius: 9px; background: #fff; overflow: hidden }

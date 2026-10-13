@@ -67,7 +67,7 @@ being passed around can do on its own.
    once, the last to reach the sheet wins. A wave started early or late does not shift anyone else's target. The race clock at the top runs from the first gun and stays stuck
    to the top of the screen while you scroll.
 6. **Finish** — stop each racer's clock individually as they cross, either with the
-   Finish button on their row or by typing their number into **Finish by number**. The
+   Finish button on their row or by typing their name into **Finish by name**. The
    global clock and every other wave keep running.
 7. **Last one home** — when the final racer's clock is stopped, the race clock *and*
    every wave clock stop together, frozen on that instant. Nothing on the page carries
