@@ -14,6 +14,10 @@
  * A wave's countdown nudge is a Meta row keyed `nudge:<race>:<wave>`, value in seconds.
  * A racer put in a wave by hand carries it in the Racers `waveOverride` column (1–4, or blank
  * for automatic). The column is added to an existing sheet the first time it is touched.
+ * A racer marked out of the race carries `DNS` or `DNF` in the Racers `status` column (blank
+ * while racing), added the same way. Paste this file in BEFORE deploying a front end that
+ * marks racers out: an older script has no `setStatus` action and no `status` column, so
+ * the mark would be refused, dropped, and undone by the next poll.
  * Every row is tagged with a race number, 1 to 5, and every action is scoped to one race.
  * A sheet left over from the single-race version is migrated on first touch: a `race`
  * column is inserted and every existing row is filed under race 1.
@@ -25,9 +29,10 @@
 var SHEET_ID = '1exilWhjiLgbO1sGGSXqYvk20W5K5ANy3xRh0n1qCRfQ';
 var RACE_COUNT = 5;
 var MAX_WAVES = 4;
+var RACER_STATUSES = ['DNS', 'DNF'];
 
 var SHEETS = {
-  Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt', 'waveOverride'],
+  Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt', 'waveOverride', 'status'],
   Waves: ['race', 'wave', 'startedAt'],
   Prizes: ['race', 'id', 'label', 'racerId', 'awardedAt'],
   Meta: ['key', 'value']
@@ -224,7 +229,8 @@ function doGet() {
         predictedSec: Number(r.predictedSec),
         wave: r.wave === '' ? null : Number(r.wave),
         waveOverride: (r.waveOverride === '' || r.waveOverride == null) ? null : Number(r.waveOverride),
-        finishAt: r.finishAt === '' ? null : Number(r.finishAt)
+        finishAt: r.finishAt === '' ? null : Number(r.finishAt),
+        status: RACER_STATUSES.indexOf(String(r.status)) === -1 ? null : String(r.status)
       });
     });
 
@@ -292,7 +298,8 @@ var ACTIONS = {
       predictedSec: Number(racer.predictedSec),
       wave: racer.wave || '',
       finishAt: '',
-      waveOverride: racer.waveOverride || ''
+      waveOverride: racer.waveOverride || '',
+      status: ''
     });
   },
 
@@ -378,6 +385,27 @@ var ACTIONS = {
     setCell_('Racers', row, 'predictedSec', sec);
   },
 
+  /* An organiser marking a racer DNS / DNF on race control, or clearing it (null). Whole
+     values, so a retry writes the same cell twice. The endpoint is open to anyone with the
+     URL, so only the two known marks are written.
+
+     A mark on a racer who already has a finish time is refused: the device refuses it too,
+     so this only bites when another phone recorded the finish first, and then the finish
+     is the truth. `finish` is deliberately NOT refused the other way round — losing a real
+     time is the one thing this backend must never do. The client shows the mark over a
+     finish if both ever land, and clearing the mark brings the time back. */
+  setStatus: function (body) {
+    var race = raceOf_(body);
+    var status = body.status;
+    if (status !== null && RACER_STATUSES.indexOf(String(status)) === -1) throw new Error('Bad status: ' + status);
+    var row = findRowWhere_('Racers', { race: race, id: body.id });
+    if (!row) throw new Error('No racer ' + body.id + ' in race ' + race);
+    if (status !== null && String(getCell_('Racers', row, 'finishAt')) !== '') {
+      throw new Error('Racer ' + body.id + ' already has a finish time');
+    }
+    setCell_('Racers', row, 'status', status === null ? '' : String(status));
+  },
+
   unfinish: function (body) {
     var row = findRowWhere_('Racers', { race: raceOf_(body), id: body.id });
     if (row) setCell_('Racers', row, 'finishAt', '');
@@ -412,6 +440,8 @@ var ACTIONS = {
       .forEach(function (r) {
         setCell_('Racers', r._row, 'wave', '');
         setCell_('Racers', r._row, 'finishAt', '');
+        // DNF goes with the times; DNS is a start-list decision and stays, like a hand-set wave.
+        if (String(r.status) === 'DNF') setCell_('Racers', r._row, 'status', '');
       });
     deleteRowsWhere_('Waves', { race: race });
     clearNudges_(race);

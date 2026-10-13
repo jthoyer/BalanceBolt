@@ -1096,6 +1096,192 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(race(2).racers[0].predictedSec, 600, "race 2's call must survive an edit in race 1");
   });
 
+  /* ═══ DNS / DNF ═════════════════════════════════════════════════════════ */
+
+  group('setRacerStatus — marking a racer DNS or DNF, and handing them back');
+
+  /* Ana 10:00, Bea 10:30, Cal 30:00, Dan 60:00. Auto before the gun: Dan alone in wave 1,
+     Cal alone in wave 2, Ana and Bea in wave 3. */
+  const quad = (extra = {}) => setDb({ 1: Object.assign({ racers: [
+    racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 630),
+    racer('c', 3, 'Cal', 1800), racer('d', 4, 'Dan', 3600)
+  ], wavesLocked: false }, extra) });
+
+  test('cleanRace keeps DNS and DNF and drops anything else', () => {
+    const r = cleanRace({ racers: [
+      racer('a', 1, 'Ana', 600, { status: 'DNS' }),
+      racer('b', 2, 'Bea', 600, { status: 'DNF' }),
+      racer('c', 3, 'Cal', 600, { status: 'dnf' }),
+      racer('d', 4, 'Dan', 600, { status: 'DQ' }),
+      racer('e', 5, 'Eve', 600)
+    ] });
+    eq(r.racers.map(x => x.status), ['DNS', 'DNF', null, null, null]);
+  });
+
+  test('a new sign-up is racing', () => {
+    setDb({});
+    eq(addRacer('Ana', 600).status, null);
+  });
+
+  test('DNS before the gun takes the no-show out of the wave split', () => {
+    quad();
+    eq(raceView(1).map.get('c'), 2, 'with Dan racing, Cal is wave 2');
+    const out = setRacerStatus('d', 'DNS');
+    eq(out.ok, true);
+    eq(out.status, 'DNS');
+    eq(out.was, null);
+    const map = raceView(1).map;
+    eq([map.get('c'), map.get('a'), map.get('b')], [1, 2, 2], 'Dan no longer holds a wave of his own');
+  });
+
+  test('a DNS racer is still listed in a wave — beside whoever is racing closest to their call', () => {
+    quad();
+    setRacerStatus('d', 'DNS');
+    eq(raceView(1).map.get('d'), 1, 'Dan sits with Cal, the nearest call still racing');
+    eq(raceView(1).list.length, 4, 'nobody vanishes from the start list');
+  });
+
+  test('handing a DNS back before the gun puts them back in the split', () => {
+    quad();
+    setRacerStatus('d', 'DNS');
+    const out = setRacerStatus('d', null);
+    eq(out.ok, true);
+    eq(out.was, 'DNS');
+    eq(raceView(1).map.get('d'), 1);
+    eq(raceView(1).map.get('c'), 2, 'Cal is pushed back to wave 2');
+  });
+
+  test('DNF before the racer\'s wave has gone is refused, and points at DNS', () => {
+    quad();
+    const out = setRacerStatus('a', 'DNF');
+    eq(out.ok, false);
+    ok(/DNS/.test(out.error), 'the refusal should name the mark that does fit: ' + out.error);
+    eq(race(1).racers[0].status, null, 'nothing was written');
+  });
+
+  test('DNF after the gun takes the racer off the board and stops their Finish', () => {
+    quad();
+    startWave(3);
+    eq(setRacerStatus('a', 'DNF').ok, true);
+    const v = raceView(1);
+    eq(result(race(1).racers[0], v), null);
+    const fin = finishRacer('a', T);
+    eq(fin.ok, false, 'a DNF cannot be finished without clearing the mark');
+    eq(race(1).racers[0].finishAt, null);
+  });
+
+  test('DNS is allowed after the gun as well — they never crossed the start', () => {
+    quad();
+    startWave(3);
+    eq(setRacerStatus('b', 'DNS').ok, true);
+  });
+
+  test('a racer who is already home cannot be marked out', () => {
+    quad();
+    startWave(3);
+    finishRacer('a', Date.now());
+    ['DNS', 'DNF'].forEach(mark => {
+      const out = setRacerStatus('a', mark);
+      eq(out.ok, false, mark + ' on a finished racer');
+      ok(/Undo their finish/.test(out.error), out.error);
+    });
+    eq(race(1).racers[0].status, null);
+  });
+
+  test('anything but DNS, DNF or null is refused, and so is an unknown racer', () => {
+    quad();
+    eq(setRacerStatus('a', 'DQ').ok, false);
+    eq(setRacerStatus('a', 'dns').ok, false, 'the marks are exact, not case-folded');
+    eq(setRacerStatus('nobody', 'DNS').ok, false);
+    eq(race(1).racers.map(r => r.status), [null, null, null, null]);
+  });
+
+  test('if a finish and a mark both arrive from the sheet, the mark wins and clearing it restores the time', () => {
+    setDb({ 1: { racers: [
+      racer('a', 1, 'Ana', 600, { wave: 1, finishAt: T + 600000, status: 'DNF' }),
+      racer('b', 2, 'Bea', 600, { wave: 1, finishAt: T + 610000 })
+    ], waveStarts: { 1: T }, wavesLocked: true } });
+    eq(ranked(raceView(1)).map(r => r.racer.id), ['b'], 'Ana is out while marked');
+    eq(setRacerStatus('a', null).ok, true, 'clearing is always allowed');
+    eq(ranked(raceView(1)).map(r => r.racer.id), ['a', 'b'], 'and her stored finish comes straight back');
+  });
+
+  test('the race is over when the last racer still racing is home — a DNF does not hold it open', () => {
+    setDb({ 1: { racers: [
+      racer('a', 1, 'Ana', 600, { wave: 1, finishAt: T + 600000 }),
+      racer('b', 2, 'Bea', 600, { wave: 1, status: 'DNF' }),
+      racer('c', 3, 'Cal', 600, { wave: 2, status: 'DNS' })
+    ], waveStarts: { 1: T }, wavesLocked: true } });
+    eq(raceStoppedAt(raceView(1)), T + 600000, 'Cal\'s wave never went, and that must not matter either');
+  });
+
+  test('a race where everyone is marked out has no finish to stop on', () => {
+    setDb({ 1: { racers: [
+      racer('a', 1, 'Ana', 600, { wave: 1, status: 'DNF' })
+    ], waveStarts: { 1: T }, wavesLocked: true } });
+    eq(raceStoppedAt(raceView(1)), null);
+  });
+
+  test('a DNS or DNF does not steer their wave\'s gun', () => {
+    /* Wave 1 (Ana 30:00) has gone. Wave 2 is Bea 10:00, Cal 15:00, Dan 20:00 — median
+       15:00. With Dan DNS the median is the mean of 10:00 and 15:00, 12:30. */
+    const base = () => setDb({ 1: { racers: [
+      racer('a', 1, 'Ana', 1800, { wave: 1 }),
+      racer('b', 2, 'Bea', 600, { wave: 2 }),
+      racer('c', 3, 'Cal', 900, { wave: 2 }),
+      racer('d', 4, 'Dan', 1200, { wave: 2 })
+    ], waveStarts: { 1: T }, wavesLocked: true } });
+    base();
+    eq(waveTargets(raceView(1)).get(2).offsetMs, (1800 - 900) * 1000);
+    base();
+    setRacerStatus('d', 'DNS');
+    eq(waveTargets(raceView(1)).get(2).offsetMs, (1800 - 750) * 1000);
+  });
+
+  test('a DNS or DNF race never counts toward the series, and is recorded as such', () => {
+    const finished = (n, id) => ({ racers: [racer(id, 1, 'Ana', 600, { wave: 1, finishAt: T + 600000 + n * 1000 })],
+      waveStarts: { 1: T }, wavesLocked: true });
+    setDb({
+      1: finished(1, 'a1'), 2: finished(2, 'a2'), 3: finished(3, 'a3'),
+      4: { racers: [racer('a4', 1, 'Ana', 600, { wave: 1, status: 'DNF' })], waveStarts: { 1: T }, wavesLocked: true },
+      5: { racers: [racer('a5', 1, 'Ana', 600, { status: 'DNS' })] }
+    });
+    const ana = seriesStandings()[0];
+    eq(ana.completed, 3);
+    eq(ana.eligible, false, 'three finishes and two marks is not four races');
+    eq(ana.statuses, { 4: 'DNF', 5: 'DNS' });
+    eq(ana.diffs[4], null);
+    eq(ana.entered, [1, 2, 3, 4, 5]);
+  });
+
+  test('Clear times clears a DNF with the times, and keeps a DNS — a no-show is a start-list decision', () => {
+    quad();
+    setRacerStatus('d', 'DNS');
+    startWave(3);
+    setRacerStatus('a', 'DNF');
+    resetTimes();
+    eq(race(1).racers.map(r => r.status), [null, null, null, 'DNS']);
+  });
+
+  test('a mark leaves the call and any hand-set wave alone', () => {
+    quad();
+    setRacerWave('a', 4);
+    setRacerStatus('a', 'DNS');
+    const a = race(1).racers[0];
+    eq([a.predictedSec, a.waveOverride], [600, 4]);
+    eq(raceView(1).map.get('a'), 4, 'a pin still wins over the DNS parking');
+  });
+
+  test('marking a racer in one race leaves the same person in another race alone', () => {
+    setDb({
+      1: { racers: [racer('a', 1, 'Ana', 600)] },
+      2: { racers: [racer('a2', 1, 'Ana', 600)] }
+    });
+    setRacerStatus('a', 'DNS'); // acts on currentRace, which is 1
+    eq(race(1).racers[0].status, 'DNS');
+    eq(race(2).racers[0].status, null);
+  });
+
   /* ═══ Sync — the async path, where a green suite hid a real bug ═════════ */
 
   group('sync() — pulling without losing local work');
@@ -1137,6 +1323,39 @@ globalThis.__TESTS_DONE__ = (async function () {
       eq(outbox[0].action, 'setPredictedTime');
       eq(outbox[0].payload.id, 'a');
       eq(outbox[0].payload.predictedSec, 900);
+    });
+  });
+
+  await atest('a DNS / DNF mark is queued for the sheet as setStatus, and clearing sends null', async () => {
+    /* Same contract as above: 'setStatus' must match ACTIONS in apps-script.gs, which
+       run-tests.mjs checks statically. The payload carries the whole new value. */
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    await withStubbedSync(async () => {
+      setRacerStatus('a', 'DNS');
+      setRacerStatus('a', null);
+      eq(outbox.map(o => o.action), ['setStatus', 'setStatus']);
+      eq(outbox.map(o => o.payload.status), ['DNS', null]);
+      eq(outbox[0].payload.id, 'a');
+    });
+  });
+
+  await atest('a refused mark queues nothing', async () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    await withStubbedSync(async () => {
+      setRacerStatus('a', 'DNF'); // wave not started
+      eq(outbox.length, 0);
+    });
+  });
+
+  await atest('a mark made on another phone arrives with the sheet', async () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600)] } });
+    await withStubbedSync(async () => {
+      globalThis.fetch = fetchReturning({ races: { 1: {
+        racers: [{ id: 'a', number: 1, name: 'Ana', predictedSec: 600, wave: null, finishAt: null, status: 'DNS' }],
+        waveStarts: {}, wavesLocked: false, prizes: []
+      } } });
+      await sync({ pull: true });
+      eq(race(1).racers[0].status, 'DNS');
     });
   });
 

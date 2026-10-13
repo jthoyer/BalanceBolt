@@ -48,6 +48,14 @@ function emptyDb() {
 const validRace = n => Number.isInteger(n) && n >= 1 && n <= RACE_COUNT;
 const validWave = w => Number.isInteger(w) && w >= 1 && w <= MAX_WAVES;
 
+/* A racer who is out of the race: DNS never started, DNF started and did not finish.
+   Anything else — including blank — means they are racing (or home). */
+const RACER_STATUSES = ['DNS', 'DNF'];
+const STATUS_WORDS = { DNS: 'Did not start', DNF: 'Did not finish' };
+const validStatus = s => RACER_STATUSES.includes(s);
+/** Still in the race: not marked DNS or DNF. */
+const isRacing = r => !r.status;
+
 /** Coerce whatever came off the wire or out of storage into the shape we expect. */
 function cleanRace(src) {
   const raw = src && typeof src === 'object' ? src : {};
@@ -71,7 +79,8 @@ function cleanRace(src) {
       predictedSec: Number(r.predictedSec),
       wave: r.wave ? Number(r.wave) : null,
       waveOverride: validWave(Number(r.waveOverride)) ? Number(r.waveOverride) : null,
-      finishAt: r.finishAt ? Number(r.finishAt) : null
+      finishAt: r.finishAt ? Number(r.finishAt) : null,
+      status: validStatus(r.status) ? r.status : null
     })),
     waveStarts,
     waveNudges,
@@ -314,10 +323,21 @@ function buildWaveMap(data, list) {
     list.forEach(r => map.set(r.id, Number(r.wave) || fallback));
     return map;
   }
-  groupByPredicted(list.filter(r => !r.waveOverride)).forEach((group, i) => {
+  /* A racer marked DNS before the gun is a no-show: they must not shape anyone's wave,
+     so they are left out of the grouping and parked beside whoever is racing closest to
+     their call. They still need a wave — race control lists them there, so an organiser
+     can find them and hand them back if they turn up after all. */
+  const grouped = list.filter(r => !r.waveOverride && r.status !== 'DNS');
+  groupByPredicted(grouped).forEach((group, i) => {
     group.forEach(racer => map.set(racer.id, i + 1));
   });
   list.forEach(r => { if (r.waveOverride) map.set(r.id, r.waveOverride); });
+  list.forEach(r => {
+    if (map.has(r.id)) return;
+    const near = grouped.reduce((best, o) =>
+      !best || Math.abs(o.predictedSec - r.predictedSec) < Math.abs(best.predictedSec - r.predictedSec) ? o : best, null);
+    map.set(r.id, near ? map.get(near.id) : 1);
+  });
   return map;
 }
 
@@ -371,7 +391,8 @@ function waveTargets(v, nudges = {}) {
   v.waves.forEach(w => {
     /* A racer moved here by hand doesn't steer the wave's gun — the wave is aimed at the
        racers who belong in it by their call. Only a wave that is all hand moves uses theirs. */
-    const members = racersInWave(v, w);
+    /* Nor does anyone marked DNS or DNF: a wave is aimed at the people who are racing. */
+    const members = racersInWave(v, w).filter(isRacing);
     const auto = members.filter(r => !r.waveOverride);
     const call = waveCallSec(auto.length ? auto : members);
     if (call !== null) calls[w] = call;
@@ -419,8 +440,14 @@ function nudgeWave(wave, deltaSec, n = currentRace) {
 /** Signed "+0:30" / "−1:00" for a nudge in seconds. */
 const fmtNudge = sec => `${sec < 0 ? '−' : '+'}${fmtSec(Math.abs(sec))}`;
 
-/** A racer's finish, or null while they're still out on course. */
+/**
+ * A racer's finish, or null while they're still out on course — or out of the race.
+ * DNS and DNF have no result, even when a finish time is also on the sheet (two phones
+ * can disagree for a moment): the status is the later, deliberate decision, and clearing
+ * it brings the stored finish straight back.
+ */
 function result(racer, v) {
+  if (racer.status) return null;
   const start = waveStart(v, v.map.get(racer.id));
   if (!start || !racer.finishAt) return null;
   const elapsed = Math.max(0, racer.finishAt - start);
@@ -434,12 +461,16 @@ function result(racer, v) {
  * be counting up. Undo a finish and it goes back to null and the clocks resume.
  */
 function raceStoppedAt(v) {
-  if (!v.list.length) return null;
+  /* Nobody is waited for once they are marked DNS or DNF, so the race is over when the
+     last person still racing is home. A race where nobody is left racing has no last
+     finish to stop on, and keeps running until an organiser hands someone back. */
+  const racing = v.list.filter(isRacing);
+  if (!racing.length) return null;
   if (!Object.keys(v.data.waveStarts).length) return null;
-  if (v.list.some(r => !r.finishAt)) return null;
+  if (racing.some(r => !r.finishAt)) return null;
   // Everyone who started has to have started: a racer in a wave still on the line is not home.
-  if (v.list.some(r => waveStart(v, v.map.get(r.id)) === null)) return null;
-  return v.list.reduce((last, r) => Math.max(last, r.finishAt), 0);
+  if (racing.some(r => waveStart(v, v.map.get(r.id)) === null)) return null;
+  return racing.reduce((last, r) => Math.max(last, r.finishAt), 0);
 }
 
 /** Everyone who has crossed the line, closest-to-their-call first. */
@@ -470,10 +501,12 @@ function seriesStandings() {
     v.list.forEach(racer => {
       const key = nameKey(racer.name);
       if (!people.has(key)) {
-        people.set(key, { key, name: racer.name, diffs: {}, entered: [], completed: 0 });
+        people.set(key, { key, name: racer.name, diffs: {}, statuses: {}, entered: [], completed: 0 });
       }
       const person = people.get(key);
       person.entered.push(n);
+      // DNS / DNF is not a finish: it never counts toward the four, and shows as itself.
+      if (racer.status) person.statuses[n] = racer.status;
       const res = result(racer, v);
       person.diffs[n] = res ? res.absDelta : null;
       if (res) person.completed += 1;
@@ -662,7 +695,8 @@ function addRacer(name, predictedSec) {
     predictedSec,
     wave: data.wavesLocked ? nextOpenWave(data) : null,
     waveOverride: null,
-    finishAt: null
+    finishAt: null,
+    status: null
   };
   data.racers.push(racer);
   save();
@@ -751,6 +785,42 @@ function setRacerWave(id, wave) {
   return { ok: true, racer, was, wave: raceView().map.get(id), locked: data.wavesLocked, pinned: wave !== null };
 }
 
+/**
+ * Mark a racer DNS (did not start) or DNF (did not finish), or hand them back to the race
+ * with null. An organiser's action, on race control only — the sign-up page has no way in.
+ *
+ * Two marks are refused, because each would say something the clocks contradict:
+ *   - anyone with a finish time: they are home. Undo the finish first if it was a mistake.
+ *   - DNF before their wave has gone: you cannot fail to finish a race you have not started.
+ * DNS is allowed after the gun as well as before it — someone who never crossed the start
+ * line is DNS whatever the clocks are doing.
+ *
+ * Nothing else is touched: their call, their wave and any hand-set wave all stay, so
+ * clearing the mark puts them back exactly where they were.
+ *
+ * Returns `{ ok, racer, was, status }`, or `{ ok: false, error }`.
+ */
+function setRacerStatus(id, status) {
+  const v = raceView();
+  const racer = v.data.racers.find(r => r.id === id);
+  if (!racer) return { ok: false, error: 'No racer with that number.' };
+  if (status !== null && !validStatus(status)) return { ok: false, error: 'A racer can only be marked DNS or DNF.' };
+  const was = racer.status;
+  if (status !== null && racer.finishAt) {
+    return { ok: false, error: `${racer.name} is already home. Undo their finish first.` };
+  }
+  const wave = v.map.get(id);
+  if (status === 'DNF' && waveStart(v, wave) === null) {
+    return { ok: false, error: `Wave ${wave} hasn't started, so ${racer.name} can't have failed to finish. Mark them DNS instead.` };
+  }
+
+  racer.status = status;
+  save();
+  queue('setStatus', { id, status });
+  renderPage();
+  return { ok: true, racer, was, status };
+}
+
 function startWave(wave) {
   const data = race();
   if (data.waveStarts[wave] != null) return;
@@ -777,6 +847,7 @@ function finishRacer(id, finishAt = Date.now()) {
   const wave = v.map.get(racer.id);
   if (waveStart(v, wave) === null) return { ok: false, error: `Wave ${wave} hasn't started yet.` };
   if (racer.finishAt) return { ok: false, error: `${racer.name} already finished.` };
+  if (racer.status) return { ok: false, error: `${racer.name} is marked ${racer.status}. Clear that first if they did finish.` };
 
   racer.finishAt = finishAt;
   save();
@@ -812,9 +883,16 @@ function removePrize(id) {
   renderPage();
 }
 
+/* DNF goes with the times — it is an outcome of the run being cleared. DNS stays: like a
+   hand-set wave it is a decision about the start list, and a re-run gun does not make a
+   no-show turn up. */
 function resetTimes() {
   const data = race();
-  data.racers.forEach(r => { r.finishAt = null; r.wave = null; });
+  data.racers.forEach(r => {
+    r.finishAt = null;
+    r.wave = null;
+    if (r.status === 'DNF') r.status = null;
+  });
   data.waveStarts = {};
   data.wavesLocked = false;
   data.waveNudges = {};
