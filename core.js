@@ -308,17 +308,38 @@ function groupByPredicted(list) {
  * Once locked, the stored wave wins for everybody, and a hand move writes the stored wave.
  */
 function buildWaveMap(data, list) {
-  const map = new Map();
   if (data.wavesLocked) {
+    const map = new Map();
     const fallback = nextOpenWave(data);
     list.forEach(r => map.set(r.id, Number(r.wave) || fallback));
     return map;
   }
+  return groupedWaveMap(list);
+}
+
+/** The wave map the five-minute rule would draw today, ignoring any lock. */
+function groupedWaveMap(list) {
+  const map = new Map();
   groupByPredicted(list.filter(r => !r.waveOverride)).forEach((group, i) => {
     group.forEach(racer => map.set(racer.id, i + 1));
   });
   list.forEach(r => { if (r.waveOverride) map.set(r.id, r.waveOverride); });
   return map;
+}
+
+/**
+ * Where a racer's call says they belong, when that is not where they are. Returns the
+ * wave their call fits, or null when they sit where the grouping would put them.
+ *
+ * Only a locked race can disagree with itself: a late sign-up lands in the next open wave
+ * whatever they called, and Edit call after the first gun changes the call but not the
+ * wave. Hand-set racers are left out, since their row already says so.
+ */
+function callMismatch(v, racer) {
+  if (!v.data.wavesLocked || racer.waveOverride) return null;
+  if (!v.grouped) v.grouped = groupedWaveMap(v.list);
+  const fits = v.grouped.get(racer.id);
+  return fits && fits !== v.map.get(racer.id) ? fits : null;
 }
 
 function raceView(n = currentRace) {

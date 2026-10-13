@@ -1059,6 +1059,29 @@ globalThis.__TESTS_DONE__ = (async function () {
     eq(race(1).racers[1].predictedSec, 630, 'but the call itself is still corrected');
   });
 
+  test('callMismatch names the wave a locked racer\'s call fits, and only then', () => {
+    setDb({ 1: {
+      racers: [
+        racer('a', 1, 'Ana', 600, { wave: 1 }),
+        racer('b', 2, 'Bea', 1800, { wave: 2 }),
+        racer('c', 3, 'Cal', 600, { wave: 2, waveOverride: 2 })
+      ],
+      waveStarts: { 1: T }, wavesLocked: true
+    } });
+    setPredictedTime('b', 630);
+    const v = raceView(1);
+    eq(callMismatch(v, racerById(v, 'a')), null, 'Ana sits where her call puts her');
+    eq(callMismatch(v, racerById(v, 'b')), 1, 'Bea was edited after the gun: her call fits wave 1');
+    eq(callMismatch(v, racerById(v, 'c')), null, 'a hand-set racer already says so');
+  });
+
+  test('callMismatch is null before the first gun', () => {
+    setDb({ 1: { racers: [racer('a', 1, 'Ana', 600), racer('b', 2, 'Bea', 1800)], wavesLocked: false } });
+    const v = raceView(1);
+    eq(callMismatch(v, racerById(v, 'a')), null);
+    eq(callMismatch(v, racerById(v, 'b')), null);
+  });
+
   test('a finished racer is re-measured against the corrected call', () => {
     setDb({ 1: {
       racers: [racer('a', 1, 'Ana', 600, { wave: 1, finishAt: T + 660000 })],
