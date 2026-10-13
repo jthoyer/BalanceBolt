@@ -852,12 +852,20 @@ $('#quickFinishForm').addEventListener('submit', e => {
   const input = $('#quickFinishInput');
   clearFieldErrors(err, [input]);
 
-  const number = Number(input.value.trim());
+  const typed = input.value.trim();
+  const query = nameKey(typed);
   const fail = msg => showFieldError(err, msg, input);
 
-  if (!Number.isInteger(number) || number <= 0) return fail('Type a race number.');
-  const racer = race().racers.find(r => r.number === number);
-  if (!racer) return fail(`No racer with number ${number} in race ${currentRace}.`);
+  if (!query) return fail('Type a racer name.');
+  // An exact name wins. Otherwise a start-of-name match works if it points to one racer.
+  const racers = race().racers;
+  const exact = racers.filter(r => nameKey(r.name) === query);
+  const matches = exact.length ? exact : racers.filter(r => nameKey(r.name).startsWith(query));
+  if (!matches.length) return fail(`No racer called "${typed}" in race ${currentRace}.`);
+  if (matches.length > 1) {
+    return fail(`More than one racer fits "${typed}": ${matches.map(r => r.name).join(', ')}. Type more of the name.`);
+  }
+  const racer = matches[0];
 
   const outcome = finishRacer(racer.id, finishAt);
   if (!outcome.ok) return fail(outcome.error);
