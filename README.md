@@ -215,3 +215,7 @@ branch**, branch `main`, folder `/ (root)`. The site appears at
 | `apps-script.gs` | Google Sheets backend — paste into the spreadsheet's Apps Script |
 | `STYLEGUIDE.md` | Design system, measured contrast ratios, component patterns, tone of voice |
 | `assets/balance-logo.png` | Club logo |
+
+## Claude Code agents and skills
+
+Claude Code agents and skills live in [agent-skills-library](https://github.com/jthoyer/agent-skills-library). This repo keeps no copies: attach that library to a Claude Code session when the work needs its agents.
