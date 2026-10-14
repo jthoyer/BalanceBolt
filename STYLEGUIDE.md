@@ -95,6 +95,7 @@ states need 3:1.
 | `--green` on `--navy-bg` (bang-on delta, furthest row) | 5.84 |
 | `--green` on `--gold-bg` (bang-on delta, leading row) | 5.78 |
 | `--red` on `--red-bg` | 5.72 |
+| `--ink` on `--red-bg` (review card text) | 13.30 |
 | `--muted` on `--green-bg` | 5.59 |
 | `--muted` on `--navy-bg` | 5.55 |
 | `--muted` on `--gold-bg` | 5.49 |
@@ -113,6 +114,7 @@ states need 3:1.
 | `--red` border on `--canvas` | 6.15 |
 | `--focus` ring on `--green-bg` | 5.98 |
 | `--focus` ring on `--navy-bg` | 5.94 |
+| `--focus` ring on `--red-bg` (review card) | 5.83 |
 | `--focus` ring on `--gold-bg` | 5.88 |
 | `--green` fill on `#ffffff` | 6.55 |
 | `--bronze-rim` medal card edge on `--canvas` | 8.21 |
@@ -204,8 +206,8 @@ Rules:
 - One shadow in the whole system: `0 8px 24px rgba(18,31,55,.12)` on the sticky race
   clock, and only while it is stuck (phones). Everything else is flat.
 - Tap targets: `--tap` 48px for primary controls, `--tap-min` 44px is the floor and
-  nothing goes below it — including low-emphasis buttons like Edit call, Undo and Take
-  it back.
+  nothing goes below it — including low-emphasis buttons like Edit racer, Undo, Put back and
+  Take it back.
 
 ---
 
@@ -304,52 +306,90 @@ shows the same target. They are cleared by *Clear times* and *Wipe race*.
 so its handler hands focus to **+30s**.
 
 ### Timing row (`.timing-row`)
-One racer during a race: bib, name, "called 25:00", **Edit call** and **Move wave** buttons
-(plus a `Wave set by hand` status tag when the racer is pinned), then either a
-live clock plus a **Finish** button, or the elapsed time, the delta and an **Undo** button.
-It wraps on narrow phones with the action staying on the thumb side (`margin-left: auto`).
+One racer during a race: bib, name, "called 25:00", one **Edit racer** button (plus a
+`Wave set by hand` status tag when the racer is pinned), then either a live clock plus a
+**Finish** button, or the elapsed time, the delta and an **Undo** button. It wraps on narrow
+phones with the action staying on the thumb side (`margin-left: auto`).
 
-**Edit call sits with the call, not with the action.** It and Move wave travel together in
-`.timing-actions`, which carries `margin-right: auto`, so the two auto margins share the row's free space and leave it
+**Edit racer sits with the name, not with the action.** It travels in `.timing-actions`, which
+carries `margin-right: auto`, so the two auto margins share the row's free space and leave it
 against the name while the clock and Finish stay on the right edge — and on a narrow phone
 the row wraps between them. That placement is deliberate: Finish is the one control in this
-app that must never be pressed by accident, so nothing else is parked beside it. The same
-reasoning removed the per-racer Remove button from the sign-up sheet's start list.
+app that must never be pressed by accident, so nothing else is parked beside it. Finish is
+greyed until the racer's wave has started. The same reasoning removed the per-racer Remove
+button from the sign-up sheet's start list.
 
-### Call editor (`.timing-edit`)
-The form Edit call opens: a `.time-field` fieldset with the same Minutes / Seconds
-`.two-columns` pair the sign-up form uses, one line of `.helper-text`, a `.form-error`, and
-a `.dialog-footer` holding **Cancel** (`.secondary-button`) and **Save the call**
-(`.save-button`). Race control only — `index.html` has no editing on it at all.
+**A racer who is out** (`isOut()` in `core.js`) loses Edit racer and Finish. The row shows a
+`.status-tag.out` — `DNS · Did not start` or `DNF · Did not finish` — and **Put back** takes
+Finish's place. A DNF's reason shows as a plain `.status-tag` beside it. Put back reverses the
+status and hands focus to Edit racer.
 
-`flex-basis: 100%` drops it onto its own line *inside* the timing row, the same trick
-`.start-button` uses inside `.wave-bar`, so the form never squeezes the clock sideways. From
-700px up the two boxes are capped at 150px each, the way the race picker caps its five
-options — a field that holds three digits should not be half the shell wide.
+### DNS / DNF tag (`.status-tag.out`)
+A red tint **and** the words, never colour alone: `--red` on `--red-bg` is 5.72:1, with a 1px
+`--red` border. Used on the timing row and in the Results table's status column.
 
-**The open editor is state, not DOM.** `renderControl()` rebuilds the whole wave list and
-the sheet poll calls it every `POLL_MS`, so an editor that existed only in the DOM would be
-snatched away mid-correction. `results.js` holds `callEdit = { id, minutes, seconds, error }`
-and the render puts the form back exactly as it was; `data-focus-key` on both boxes lets
-`keepFocus()` return the caret to the one that had it. One row is open at a time.
+### Edit racer panel (`.timing-edit`)
+The one panel **Edit racer** opens. It has two parts, 32px apart:
 
-**The helper line states the consequence before the button is pressed**, because it differs:
-before the first gun the edit can re-bucket the racer *and a neighbour*, since the
-five-minute groups are drawn off the whole field; after `wavesLocked` the wave is fixed and
-only the time they are measured against changes; and if they are already home, the
-leaderboard moves under them.
+1. **The form** (`.edit-form`): Minutes, Seconds and Wave under one **Save changes**, with
+   **Cancel**, one line of `.helper-text` — "Leave a box empty and we count it as zero." — and a
+   `.form-error`. Minutes and Seconds are the same pair the sign-up form uses. The Wave select is
+   `Auto (let the app group them)`, then Wave 1–6, with `(current)` on the racer's wave. **There
+   is no wave-lock text in the panel**: no locked / not-locked tag, no sentence about moving
+   people between waves, and no `(started)` marker. A pinned racer still shows `Wave set by hand`
+   on the row.
+2. **The take-out zone** (below).
 
-### Wave mover (`.timing-edit`, second use)
-The form **Move wave** opens: one labelled `<select>` (`Auto`, then Wave 1–6, a started wave
-marked `(started)`), one line of `.helper-text`, a `.form-error`, and the same Cancel /
-**Save the wave** footer. It reuses the call editor's container, state-not-DOM pattern
-(`waveEdit` in `results.js`), Escape-to-close and focus return. Opening either editor closes
-the other, so one form is open on the page at a time. The helper line states the consequence
-before Save: before the gun a pinned racer stays put while everyone else regroups; after the
-lock only they move and their clock runs from the new wave's gun; a racer already running
-is warned that a move to an unstarted wave restarts their clock; a racer already home can
-only go to a wave that has started. A pinned racer shows a `.status-tag` (`--muted` on
-`--navy-bg`, 5.55:1) reading `Wave set by hand`.
+It drops onto its own line in the row (`flex-basis: 100%`, the trick `.start-button` uses inside
+`.wave-bar`). **The open panel is state, not DOM.** `renderControl()` rebuilds the whole wave list
+and the sheet poll calls it every `POLL_MS`, so `results.js` holds `racerEdit = { id, minutes,
+seconds, choice, note, review, error }` and the render puts the panel back exactly as it was;
+`data-focus-key` on the boxes lets `keepFocus()` return the caret. One row is open at a time.
+Race control only — `index.html` has no editing on it at all.
+
+**One Save, two existing code paths.** A time change goes through `setPredictedTime()` and a wave
+change through `setRacerWave()`. The wave goes first, because it is the one that can be refused,
+and a refusal must leave the call untouched. Only what changed is sent.
+
+**Messages.** Validation reuses `parsePredictedTime()` — 0 and 0 gives "Nought is not a time.
+What are you chasing?", seconds over 59 and non-whole numbers are errors, and an empty box counts
+as zero. If neither value changed: "Nothing to save yet. Change the time or the wave, or Cancel."
+Each is a `role="alert"` paragraph; the bad box gets `aria-invalid` and focus. "Nothing to save"
+has no bad box, so focus goes to Minutes and nothing is marked invalid.
+
+**Spacing.** Padding 16px on a phone, 20px from 700px. 6px between a label and its box, 16px
+between form rows, 12px between Cancel and Save changes, 12px between Back and the confirm
+button, and 32px between the form and the take-out zone. Every target is at least 44px; inputs
+are 16px text. Escape closes the panel and focus returns to Edit racer.
+
+### Take out of the race (`.take-out`)
+A dashed `--red` zone (6.54:1 on white) inside the panel, with `--red` heading. It holds
+**Did not start (DNS)** and **Did not finish (DNF)** as `.secondary-button.danger`.
+
+- **DNS opens only before the racer's wave starts; DNF only once it runs.** `outOptions()` in
+  `core.js` decides, and `setRacerStatus()` uses the same rule, so the buttons and the guard
+  cannot disagree. A racer who has finished has both closed (undo the finish first).
+- The closed outcome is `.is-closed`: greyed, dashed, `--muted` on `#eef0f4` (5.46:1). It uses
+  `aria-disabled` rather than `disabled` so it stays focusable, and one plain line under the
+  buttons — "DNF opens once their clock runs." / "DNS is closed once their clock runs." — is its
+  `aria-describedby`.
+- Tapping the open outcome replaces the buttons with the **review card**.
+
+### Review card (`.review-card`)
+A `--red-bg` block with a 2px `--red` edge (`--red` heading 5.72:1, `--ink` text 13.30:1, `--focus`
+ring 5.83:1 on it). A heading naming the racer and outcome ("Mark Bea as DNS?", focus lands here),
+three plain lines, and for a DNF a "Reason (optional)" box. Then **Back** and a confirm button that
+names the outcome — **Mark as DNS** / **Mark as DNF**. **Enter in the reason box never confirms**;
+only the button does. Nothing is saved until then. After confirming, focus moves to **Put back**
+and the result goes through `#announcer`. It is not `.confirm-card`, which is the green sign-up
+confirmation.
+
+**Data.** `status` (`''`, `'dns'`, `'dnf'`) and `statusNote` (a DNF's reason, 120 characters at
+most) live on the racer, beside `waveOverride`, and travel the same way: `cleanRace()`, the
+`setStatus` sheet action, and the `status` / `statusNote` columns on `Racers`. A racer who is out
+is skipped by the race-stopped clock, the "still out on course" count, the wave's "N of M home"
+and the wave's target-start median, and finishing them by name is refused. Clear times drops a DNF
+(no clock is running any more) and keeps a DNS.
 
 ### Bib badge (`.bib`)
 Pill on `--navy-bg` with the race number, tabular. Always rendered with a
@@ -446,8 +486,8 @@ ranking implied between the two jobs.
 | `.finish-button` | Stop one racer's clock | `--ink` fill, 48px |
 | `.secondary-button` | Admin actions | `#eef0f4` fill, `--line-strong` border |
 | `.secondary-button.danger` | Destructive | `--red-bg` fill, `--red` border and label |
-| `.quiet-button` | Edit call / Undo / Take it back | White, `--line-strong` border, 44px |
-| `.quiet-button.neutral` | Same, where the action is **not** a reversal or a removal (Edit call) | As above, but the hover is `--ink` / `--navy-bg` instead of red |
+| `.quiet-button` | Edit racer / Undo / Put back / Take it back | White, `--line-strong` border, 44px |
+| `.quiet-button.neutral` | Same, where the action is **not** a reversal or a removal (Edit racer) | As above, but the hover is `--ink` / `--navy-bg` instead of red |
 | `.text-button` | Header-only, low weight | Transparent, `--muted` |
 
 Full-width on phones, `width: auto` from 700px up.
@@ -535,9 +575,9 @@ time someone presses Finish. Buttons that survive a render under a different nam
 carry `data-focus-key`, and `keepFocus()` moves focus to the same key afterwards — so
 Finish → Undo → Finish keeps you in the same row. The call editor's two boxes carry one
 too, so the four-second poll cannot rebuild the form out from under someone typing in it.
-Where an element genuinely disappears (Start wave, Take it back, and the editor on Save,
-Cancel or `Escape`) the handler decides explicitly where focus goes next — the editor hands
-it back to the Edit call button that opened it. Never let focus fall back to `<body>`.
+Where an element genuinely disappears (Start wave, Take it back, and the panel on Save,
+Cancel or `Escape`) the handler decides explicitly where focus goes next — the panel hands
+it back to the Edit racer button that opened it, and a confirmed DNS or DNF hands it to Put back. Never let focus fall back to `<body>`.
 
 **Move focus after the render, never during it.** `renderControl()` builds a row and its
 editor detached and appends the finished wave block afterwards, and `.focus()` on a node
@@ -570,9 +610,8 @@ controls, 16px form inputs, 320px reflow with no horizontal scroll.
 
 **Text alternatives.** The logo's `alt` is the club name. Decorative glyphs (`+`, `★`,
 `→`, `↗`) are `aria-hidden="true"` so they are not read as words. Icon-free buttons
-whose visible text is ambiguous in isolation ("Edit call", "Undo", "Finish", "Take it
-back") get an `aria-label` naming the racer — Edit call's also states the time it is about
-to change, since "edit" alone does not say what. A disclosure button carries `aria-expanded`,
+whose visible text is ambiguous in isolation ("Edit racer", "Undo", "Put back", "Finish", "Take it
+back") get an `aria-label` naming the racer — Edit racer's also says what it edits. A disclosure button carries `aria-expanded`,
 and `aria-controls` only while the thing it controls exists.
 
 **ARIA is a last resort.** Radios for the race picker, `<fieldset>`/`<legend>` for

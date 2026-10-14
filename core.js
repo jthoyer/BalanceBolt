@@ -45,6 +45,13 @@ function emptyDb() {
   return { races };
 }
 
+/* A racer taken out of the race. Stored on the racer, like waveOverride, so it rides the same
+   sheet row, the same poll and the same cleanRace(). '' means still in it. */
+const OUT_STATUSES = ['dns', 'dnf'];
+const STATUS_NOTE_MAX = 120;
+const OUT_WORDS = { dns: 'Did not start', dnf: 'Did not finish' };
+const isOut = racer => OUT_STATUSES.includes(racer.status);
+
 const validRace = n => Number.isInteger(n) && n >= 1 && n <= RACE_COUNT;
 const validWave = w => Number.isInteger(w) && w >= 1 && w <= MAX_WAVES;
 
@@ -71,7 +78,10 @@ function cleanRace(src) {
       predictedSec: Number(r.predictedSec),
       wave: r.wave ? Number(r.wave) : null,
       waveOverride: validWave(Number(r.waveOverride)) ? Number(r.waveOverride) : null,
-      finishAt: r.finishAt ? Number(r.finishAt) : null
+      finishAt: r.finishAt ? Number(r.finishAt) : null,
+      /* '' = racing, 'dns' = did not start, 'dnf' = did not finish. Anything else is junk. */
+      status: OUT_STATUSES.includes(r.status) ? r.status : '',
+      statusNote: r.status === 'dnf' && r.statusNote ? String(r.statusNote).slice(0, STATUS_NOTE_MAX) : ''
     })),
     waveStarts,
     waveNudges,
@@ -393,8 +403,11 @@ function waveTargets(v, nudges = {}) {
     /* A racer moved here by hand doesn't steer the wave's gun — the wave is aimed at the
        racers who belong in it by their call. Only a wave that is all hand moves uses theirs. */
     const members = racersInWave(v, w);
-    const auto = members.filter(r => !r.waveOverride);
-    const call = waveCallSec(auto.length ? auto : members);
+    // Someone taken out of the race does not steer the gun either.
+    const live = members.filter(r => !isOut(r));
+    const pool = live.length ? live : members;
+    const auto = pool.filter(r => !r.waveOverride);
+    const call = waveCallSec(auto.length ? auto : pool);
     if (call !== null) calls[w] = call;
   });
   const steerable = v.waves.filter(w => calls[w] != null);
@@ -455,12 +468,16 @@ function result(racer, v) {
  * be counting up. Undo a finish and it goes back to null and the clocks resume.
  */
 function raceStoppedAt(v) {
-  if (!v.list.length) return null;
+  /* A racer who is out (DNS or DNF) will never cross the line, so they cannot hold the race
+     open. Someone has to have finished, though: a race where everyone is out has no last
+     finisher to freeze the clocks on. */
+  const active = v.list.filter(r => !isOut(r));
+  if (!active.length) return null;
   if (!Object.keys(v.data.waveStarts).length) return null;
-  if (v.list.some(r => !r.finishAt)) return null;
+  if (active.some(r => !r.finishAt)) return null;
   // Everyone who started has to have started: a racer in a wave still on the line is not home.
-  if (v.list.some(r => waveStart(v, v.map.get(r.id)) === null)) return null;
-  return v.list.reduce((last, r) => Math.max(last, r.finishAt), 0);
+  if (active.some(r => waveStart(v, v.map.get(r.id)) === null)) return null;
+  return active.reduce((last, r) => Math.max(last, r.finishAt), 0);
 }
 
 /** Everyone who has crossed the line, closest-to-their-call first. */
@@ -491,12 +508,13 @@ function seriesStandings() {
     v.list.forEach(racer => {
       const key = nameKey(racer.name);
       if (!people.has(key)) {
-        people.set(key, { key, name: racer.name, diffs: {}, entered: [], completed: 0 });
+        people.set(key, { key, name: racer.name, diffs: {}, outs: {}, entered: [], completed: 0 });
       }
       const person = people.get(key);
       person.entered.push(n);
       const res = result(racer, v);
       person.diffs[n] = res ? res.absDelta : null;
+      if (isOut(racer)) person.outs[n] = racer.status;
       if (res) person.completed += 1;
     });
   }
@@ -683,7 +701,9 @@ function addRacer(name, predictedSec) {
     predictedSec,
     wave: data.wavesLocked ? nextOpenWave(data) : null,
     waveOverride: null,
-    finishAt: null
+    finishAt: null,
+    status: '',
+    statusNote: ''
   };
   data.racers.push(racer);
   save();
@@ -798,6 +818,7 @@ function finishRacer(id, finishAt = Date.now()) {
   const wave = v.map.get(racer.id);
   if (waveStart(v, wave) === null) return { ok: false, error: `Wave ${wave} hasn't started yet.` };
   if (racer.finishAt) return { ok: false, error: `${racer.name} already finished.` };
+  if (isOut(racer)) return { ok: false, error: `${racer.name} is marked ${racer.status.toUpperCase()}. Put them back first.` };
 
   racer.finishAt = finishAt;
   save();
@@ -815,6 +836,57 @@ function unfinishRacer(id) {
   save();
   queue('unfinish', { id });
   renderPage();
+}
+
+/**
+ * Which way out is open for this racer right now. One rule, used by the panel and by
+ * setRacerStatus() alike, so the buttons and the guard can never disagree.
+ *
+ * DNS is for someone who never made the line, so it is open only while their wave has not
+ * started. DNF is for someone who started and did not get home, so it is open only once
+ * their wave's clock is running. Neither is open for someone already home (Undo their finish
+ * first) or already out (Put back first).
+ *
+ * Returns `{ dns, dnf, why }` — `why` is the one plain sentence for whichever is closed.
+ */
+function outOptions(v, racer) {
+  if (isOut(racer)) return { dns: false, dnf: false, why: `${racer.name} is already marked ${racer.status.toUpperCase()}.` };
+  if (racer.finishAt) return { dns: false, dnf: false, why: 'They have finished. Undo the finish first to take them out.' };
+  const started = waveStart(v, v.map.get(racer.id)) !== null;
+  return started
+    ? { dns: false, dnf: true, why: 'DNS is closed once their clock runs.' }
+    : { dns: true, dnf: false, why: 'DNF opens once their clock runs.' };
+}
+
+/**
+ * Take a racer out of the race ('dns' or 'dnf', with an optional reason for a DNF), or put
+ * them back (status ''). An organiser's action on race control.
+ *
+ * Returns `{ ok, racer, status, was }`, or `{ ok: false, error }`.
+ */
+function setRacerStatus(id, status, note = '') {
+  const data = race();
+  const racer = data.racers.find(r => r.id === id);
+  if (!racer) return { ok: false, error: 'No racer with that number.' };
+  const was = racer.status || '';
+
+  if (status === '') {
+    if (!isOut(racer)) return { ok: false, error: `${racer.name} is already in the race.` };
+  } else {
+    if (!OUT_STATUSES.includes(status)) return { ok: false, error: 'Pick DNS or DNF.' };
+    const open = outOptions(raceView(), racer);
+    if (!open[status]) {
+      return { ok: false, error: isOut(racer) || racer.finishAt ? open.why
+        : status === 'dns' ? 'Their wave has started, so use DNF.' : 'Their wave has not started, so use DNS.' };
+    }
+  }
+
+  racer.status = status;
+  racer.statusNote = status === 'dnf' ? String(note || '').trim().slice(0, STATUS_NOTE_MAX) : '';
+  save();
+  queue('setStatus', { id, status: racer.status, note: racer.statusNote });
+  renderPage();
+  return { ok: true, racer, status, was };
 }
 
 function awardPrize(label, racerId) {
@@ -835,7 +907,11 @@ function removePrize(id) {
 
 function resetTimes() {
   const data = race();
-  data.racers.forEach(r => { r.finishAt = null; r.wave = null; });
+  /* A DNF means "their clock ran", and no clock is running any more. A DNS still stands. */
+  data.racers.forEach(r => {
+    r.finishAt = null; r.wave = null;
+    if (r.status === 'dnf') { r.status = ''; r.statusNote = ''; }
+  });
   data.waveStarts = {};
   data.wavesLocked = false;
   data.waveNudges = {};

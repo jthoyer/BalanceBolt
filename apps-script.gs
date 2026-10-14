@@ -14,6 +14,10 @@
  * A wave's countdown nudge is a Meta row keyed `nudge:<race>:<wave>`, value in seconds.
  * A racer put in a wave by hand carries it in the Racers `waveOverride` column (1–6, or blank
  * for automatic). The column is added to an existing sheet the first time it is touched.
+ * A racer taken out of the race (DNS or DNF) carries it in the Racers `status` column
+ * ('dns', 'dnf', or blank for still racing) and a DNF's optional reason in `statusNote`. Both
+ * columns are added to an existing sheet the first time it is touched, and existing rows read
+ * blank, which means "still racing" — so nothing needs migrating by hand.
  * Every row is tagged with a race number, 1 to 5, and every action is scoped to one race.
  * A sheet left over from the single-race version is migrated on first touch: a `race`
  * column is inserted and every existing row is filed under race 1.
@@ -27,7 +31,7 @@ var RACE_COUNT = 5;
 var MAX_WAVES = 6;
 
 var SHEETS = {
-  Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt', 'waveOverride'],
+  Racers: ['race', 'id', 'number', 'name', 'predictedSec', 'wave', 'finishAt', 'waveOverride', 'status', 'statusNote'],
   Waves: ['race', 'wave', 'startedAt'],
   Prizes: ['race', 'id', 'label', 'racerId', 'awardedAt'],
   Meta: ['key', 'value']
@@ -224,7 +228,9 @@ function doGet() {
         predictedSec: Number(r.predictedSec),
         wave: r.wave === '' ? null : Number(r.wave),
         waveOverride: (r.waveOverride === '' || r.waveOverride == null) ? null : Number(r.waveOverride),
-        finishAt: r.finishAt === '' ? null : Number(r.finishAt)
+        finishAt: r.finishAt === '' ? null : Number(r.finishAt),
+        status: (r.status === 'dns' || r.status === 'dnf') ? r.status : '',
+        statusNote: r.status === 'dnf' ? String(r.statusNote || '') : ''
       });
     });
 
@@ -292,7 +298,9 @@ var ACTIONS = {
       predictedSec: Number(racer.predictedSec),
       wave: racer.wave || '',
       finishAt: '',
-      waveOverride: racer.waveOverride || ''
+      waveOverride: racer.waveOverride || '',
+      status: '',
+      statusNote: ''
     });
   },
 
@@ -378,6 +386,21 @@ var ACTIONS = {
     setCell_('Racers', row, 'predictedSec', sec);
   },
 
+  /* An organiser taking a racer out of the race (DNS or DNF, with an optional reason for a DNF)
+     or putting them back (status ''). Carries the whole new value, so a retry writes the same
+     cells twice. The client decides whether DNS or DNF is open; this endpoint is deployed
+     "Anyone", so it still refuses anything that is not one of the three values. */
+  setStatus: function (body) {
+    var race = raceOf_(body);
+    var status = body.status === null || body.status === undefined ? '' : String(body.status);
+    if (status !== '' && status !== 'dns' && status !== 'dnf') throw new Error('Bad status: ' + body.status);
+    var note = status === 'dnf' ? String(body.note || '').slice(0, 120) : '';
+    var row = findRowWhere_('Racers', { race: race, id: body.id });
+    if (!row) throw new Error('No racer ' + body.id + ' in race ' + race);
+    setCell_('Racers', row, 'status', status);
+    setCell_('Racers', row, 'statusNote', note);
+  },
+
   unfinish: function (body) {
     var row = findRowWhere_('Racers', { race: raceOf_(body), id: body.id });
     if (row) setCell_('Racers', row, 'finishAt', '');
@@ -412,6 +435,11 @@ var ACTIONS = {
       .forEach(function (r) {
         setCell_('Racers', r._row, 'wave', '');
         setCell_('Racers', r._row, 'finishAt', '');
+        // A DNF means "their clock ran"; no clock is running now. A DNS still stands.
+        if (r.status === 'dnf') {
+          setCell_('Racers', r._row, 'status', '');
+          setCell_('Racers', r._row, 'statusNote', '');
+        }
       });
     deleteRowsWhere_('Waves', { race: race });
     clearNudges_(race);

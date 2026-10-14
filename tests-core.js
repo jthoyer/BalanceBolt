@@ -1121,6 +1121,172 @@ globalThis.__TESTS_DONE__ = (async function () {
 
   /* ═══ Sync — the async path, where a green suite hid a real bug ═════════ */
 
+  group('DNS / DNF — taking a racer out of the race, and putting them back');
+
+  /** Wave 1 started at T, wave 2 still on the line. Ana is in 1, Bea in 2. */
+  function gunDb(extra = {}) {
+    setDb({ 1: {
+      racers: [
+        racer('a', 1, 'Ana', 1500, Object.assign({ wave: 1 }, extra.a)),
+        racer('b', 2, 'Bea', 900, Object.assign({ wave: 2 }, extra.b)),
+        racer('c', 3, 'Cal', 1500, Object.assign({ wave: 1 }, extra.c))
+      ],
+      waveStarts: { 1: T }, wavesLocked: true
+    } });
+  }
+
+  test('cleanRace keeps a real status, drops junk, and keeps a reason only for a DNF', () => {
+    const out = cleanRace({ racers: [
+      { id: 'a', number: 1, name: 'A', predictedSec: 60, status: 'dnf', statusNote: 'knee' },
+      { id: 'b', number: 2, name: 'B', predictedSec: 60, status: 'dns', statusNote: 'ignored' },
+      { id: 'c', number: 3, name: 'C', predictedSec: 60, status: 'banana' },
+      { id: 'd', number: 4, name: 'D', predictedSec: 60 }
+    ] });
+    eq(out.racers.map(r => [r.status, r.statusNote]), [['dnf', 'knee'], ['dns', ''], ['', ''], ['', '']]);
+  });
+
+  test('before the gun DNS is open and DNF is not', () => {
+    gunDb();
+    const v = raceView(1);
+    const o = outOptions(v, racerById(v, 'b')); // wave 2 has not started
+    eq([o.dns, o.dnf], [true, false]);
+    eq(o.why, 'DNF opens once their clock runs.');
+  });
+
+  test('once their clock runs DNF is open and DNS is not', () => {
+    gunDb();
+    const v = raceView(1);
+    const o = outOptions(v, racerById(v, 'a')); // wave 1 started at T
+    eq([o.dns, o.dnf], [false, true]);
+    eq(o.why, 'DNS is closed once their clock runs.');
+  });
+
+  test('setRacerStatus refuses DNF before the gun and DNS after it, and changes nothing', () => {
+    gunDb();
+    currentRace = 1;
+    const early = setRacerStatus('b', 'dnf');
+    eq(early.ok, false); eq(early.error, 'Their wave has not started, so use DNS.');
+    const late = setRacerStatus('a', 'dns');
+    eq(late.ok, false); eq(late.error, 'Their wave has started, so use DNF.');
+    eq(race(1).racers.map(r => r.status), ['', '', ''], 'a refusal leaves everyone racing');
+  });
+
+  test('setRacerStatus marks DNS before the gun and DNF after it, trimming the reason', () => {
+    gunDb();
+    currentRace = 1;
+    eq(setRacerStatus('b', 'dns', 'ignored').ok, true);
+    eq([race(1).racers[1].status, race(1).racers[1].statusNote], ['dns', ''], 'DNS carries no reason');
+    eq(setRacerStatus('a', 'dnf', '  sore knee  ').ok, true);
+    eq([race(1).racers[0].status, race(1).racers[0].statusNote], ['dnf', 'sore knee']);
+  });
+
+  test('a racer who has finished cannot be taken out, and an unknown status is refused', () => {
+    gunDb({ a: { finishAt: T + 1000 } });
+    currentRace = 1;
+    const done = setRacerStatus('a', 'dnf');
+    eq(done.ok, false);
+    eq(done.error, 'They have finished. Undo the finish first to take them out.');
+    eq(setRacerStatus('c', 'dnq').ok, false);
+    eq(setRacerStatus('nobody', 'dnf').ok, false);
+  });
+
+  test('Put back reverses the status and the reason; putting back a racer who is in is refused', () => {
+    gunDb();
+    currentRace = 1;
+    setRacerStatus('a', 'dnf', 'knee');
+    const back = setRacerStatus('a', '');
+    eq([back.ok, back.was], [true, 'dnf']);
+    eq([race(1).racers[0].status, race(1).racers[0].statusNote], ['', '']);
+    eq(setRacerStatus('a', '').ok, false, 'already racing');
+  });
+
+  test('Put back works from DNS too, and the racer can then be marked DNF once the clock runs', () => {
+    gunDb();
+    currentRace = 1;
+    setRacerStatus('b', 'dns');
+    setRacerStatus('b', '');
+    startWave(2);
+    eq(outOptions(raceView(1), racerById(raceView(1), 'b')).dnf, true, 'wave 2 has started now');
+  });
+
+  test('finishRacer refuses someone who is out', () => {
+    gunDb();
+    currentRace = 1;
+    setRacerStatus('a', 'dnf');
+    const out = finishRacer('a', T + 5000);
+    eq(out.ok, false);
+    eq(out.error, 'Ana is marked DNF. Put them back first.');
+    eq(race(1).racers[0].finishAt, null);
+  });
+
+  test('someone who is out does not hold the race open, and does not rank', () => {
+    gunDb({ b: { wave: 1 } });
+    currentRace = 1;
+    race(1).racers.find(r => r.id === 'b').finishAt = T + 1500000;
+    race(1).racers.find(r => r.id === 'a').finishAt = T + 1600000;
+    eq(raceStoppedAt(raceView(1)), null, 'Cal is still running');
+    setRacerStatus('c', 'dnf');
+    eq(raceStoppedAt(raceView(1)), T + 1600000, 'with Cal out, the last finish stops the clocks');
+    eq(ranked(raceView(1)).map(r => r.racer.name), ['Ana', 'Bea'], 'Ana 100s off her call, Bea 600s off');
+    ok(!ranked(raceView(1)).some(r => r.racer.id === 'c'), 'the DNF racer is not on the board');
+  });
+
+  test('a race where everyone is out has no last finisher, so no clock freezes', () => {
+    gunDb();
+    currentRace = 1;
+    setRacerStatus('a', 'dnf'); setRacerStatus('c', 'dnf'); setRacerStatus('b', 'dns');
+    eq(raceStoppedAt(raceView(1)), null);
+  });
+
+  test('a DNS racer in a wave still on the line does not block the race stopping', () => {
+    gunDb({ a: { finishAt: T + 1000 }, c: { finishAt: T + 2000 } });
+    currentRace = 1;
+    eq(raceStoppedAt(raceView(1)), null, 'Bea is in a wave that has not started');
+    setRacerStatus('b', 'dns');
+    eq(raceStoppedAt(raceView(1)), T + 2000);
+  });
+
+  test('a racer who is out does not steer their wave\'s gun', () => {
+    setDb({ 1: { racers: [
+      racer('a', 1, 'Ana', 1500, { wave: 1 }), racer('b', 2, 'Bea', 1500, { wave: 1 }),
+      racer('c', 3, 'Cal', 600, { wave: 2 }), racer('d', 4, 'Dee', 3000, { wave: 2 })
+    ], waveStarts: { 1: T }, wavesLocked: true } });
+    currentRace = 1;
+    const before = waveTargets(raceView(1)).get(2).offsetMs; // median of 600 and 3000 is 1800
+    race(1).racers[3].status = 'dns';
+    const after = waveTargets(raceView(1)).get(2).offsetMs; // only Cal (600) now steers
+    eq(before, (1500 - 1800) * 1000);
+    eq(after, (1500 - 600) * 1000);
+  });
+
+  test('Clear times drops a DNF (no clock is running) but a DNS stands', () => {
+    gunDb();
+    currentRace = 1;
+    setRacerStatus('a', 'dnf', 'knee');
+    setRacerStatus('b', 'dns');
+    resetTimes();
+    eq(race(1).racers.map(r => [r.status, r.statusNote]), [['', ''], ['dns', ''], ['', '']]);
+  });
+
+  test('the series shows DNS / DNF as the race outcome, not as a time', () => {
+    gunDb();
+    currentRace = 1;
+    setRacerStatus('a', 'dnf');
+    const person = seriesStandings().find(p => p.name === 'Ana');
+    eq(person.outs, { 1: 'dnf' });
+    eq(person.completed, 0);
+  });
+
+  test('setRacerStatus queues one setStatus with the whole new value', () => {
+    gunDb();
+    currentRace = 1;
+    const sent = [];
+    const realQueue = queue;
+    queue = (action, payload) => sent.push([action, payload]);
+    try { setRacerStatus('a', 'dnf', 'knee'); setRacerStatus('a', ''); } finally { queue = realQueue; }
+    eq(sent, [['setStatus', { id: 'a', status: 'dnf', note: 'knee' }], ['setStatus', { id: 'a', status: '', note: '' }]]);
+  });
+
   group('sync() — pulling without losing local work');
 
   /* These restore real queueing and stub fetch, so they exercise the actual sync
