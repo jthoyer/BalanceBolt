@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#182542" />
+  <title>How-to guide — Balance Tri Club, Beat the clock</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .guide { max-width: 720px; margin: 0 auto; padding-bottom: 64px }
+    .guide h2 { font: 700 28px/1.2 Outfit, sans-serif; margin: 48px 0 12px; padding-top: 24px; border-top: 1px solid var(--line) }
+    .guide h3 { font: 700 21px/1.25 Outfit, sans-serif; margin: 32px 0 8px }
+    .guide h4 { font: 700 17px/1.3 "DM Sans", sans-serif; margin: 24px 0 6px }
+    .guide p, .guide li { line-height: 1.6 }
+    .guide ul, .guide ol { padding-left: 22px }
+    .guide li { margin: 4px 0 }
+    .guide code { background: var(--navy-bg); padding: 1px 6px; border-radius: 5px; font-size: .92em; overflow-wrap: anywhere }
+    .guide a { color: var(--focus) }
+    .guide blockquote { margin: 16px 0; padding: 12px 16px; background: var(--navy-bg); border-left: 4px solid var(--ink); border-radius: 0 9px 9px 0 }
+    .guide blockquote p { margin: 0 }
+    .guide figure { margin: 20px 0; display: flex; flex-direction: column; align-items: flex-start }
+    .guide figure img { width: min(100%, 300px); height: auto; border: 1px solid var(--line-strong); border-radius: 14px; background: #fff }
+    .guide figcaption { margin-top: 6px; font-size: 14px; color: var(--muted) }
+    .guide .board-wrap { margin: 16px 0 }
+    .guide .board td code { white-space: normal; word-break: break-all }
+    .guide .board td { vertical-align: top }
+    .guide hr { display: none }
+    .guide li.check { list-style: none; margin-left: -22px; display: flex; gap: 10px; align-items: flex-start }
+    .guide li.check .box { flex: none; width: 20px; height: 20px; margin-top: 3px; border: 2px solid var(--line-strong); border-radius: 5px; background: #fff }
+    .guide-hero { margin: 16px 0 8px }
+    @media (min-width: 820px) { .guide figure img { width: 320px } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the guide</a>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img class="brand-logo" src="assets/balance-logo.png" alt="Balance Tri Club" />
+      </div>
+      <div class="header-actions">
+        <a class="text-button" href="index.html">Sign-up</a>
+        <a class="text-button" href="admin.html">Admin</a>
+      </div>
+    </header>
+
+    <main id="main" class="guide">
+      <div class="hero guide-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">HOW-TO GUIDE</p>
+          <h1>Call your time. <em>Run it.</em></h1>
+          <p>How to sign up for Beat the Clock, and how to run the day from the admin dashboard.</p>
+        </div>
+      </div>
+<p>Balance Tri Club's prediction race. You call your finish time. You run it. Whoever lands closest to their own call wins. Speed counts for nothing.</p>
+<p>This guide has two parts:</p>
+<ul>
+<li><strong><a href="#part-1-sign-up">Part 1: Sign-up</a></strong> is for racers and whoever holds the sign-up phone.</li>
+<li><strong><a href="#part-2-admin-dashboard">Part 2: Admin dashboard</a></strong> is for whoever runs the day.</li>
+</ul>
+<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<thead>
+<tr>
+<th>Page</th>
+<th>Address</th>
+<th>Who uses it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sign-up</td>
+<td><code>https://jthoyer.github.io/BalanceBolt/</code></td>
+<td>Racers, on a phone passed around</td>
+</tr>
+<tr>
+<td>Admin</td>
+<td><code>https://jthoyer.github.io/BalanceBolt/admin.html</code></td>
+<td>The person running the day</td>
+</tr>
+<tr>
+<td>Race control</td>
+<td><code>https://jthoyer.github.io/BalanceBolt/boltresults.html</code></td>
+<td>Whoever is timing, and the screen everyone crowds round</td>
+</tr>
+</tbody>
+</table></div>
+<p>The screenshots show a practice race with made-up names.</p>
+<hr />
+<h2 id="part-1-sign-up">Part 1: Sign-up</h2>
+<p>You need about 30 seconds and a time in your head.</p>
+<h3 id="1-open-the-sign-up-page">1. Open the sign-up page</h3>
+<p>Open the sign-up address on any phone. The page shows which race you are entering ("Race 1 of 5") and how many people are already on the start list.</p>
+<figure><img src="docs/screenshots/signup-1-home.png" alt="The sign-up page" loading="lazy" width="390" height="844"><figcaption>The sign-up page</figcaption></figure>
+<blockquote>
+<p><strong>Which race am I entering?</strong> The page shows whichever race the organiser has set. You cannot switch races from here. If it shows the wrong race, tell the organiser.</p>
+</blockquote>
+<h3 id="2-type-your-name">2. Type your name</h3>
+<p>Use the same name every race. That is how the app tracks you across the series. <code>Ada</code>, <code>ada</code> and <code>ADA</code> count as one person.</p>
+<p>Two people with the same first name? Add a surname or a nickname.</p>
+<h3 id="3-call-your-time">3. Call your time</h3>
+<p>Enter the time you think you will take, in <strong>minutes</strong> and <strong>seconds</strong>.</p>
+<ul>
+<li>A flat 25 minutes? Type <code>25</code> in Minutes. Leave Seconds empty. An empty box counts as zero.</li>
+<li>Minutes can go up to 599. Seconds can go up to 59.</li>
+</ul>
+<p>Whatever you write is the time you chase. Pick it carefully.</p>
+<figure><img src="docs/screenshots/signup-2-filled.png" alt="A filled-in sign-up form" loading="lazy" width="390" height="844"><figcaption>A filled-in sign-up form</figcaption></figure>
+<h3 id="4-tap-add-me-to-the-race">4. Tap "Add me to the race"</h3>
+<p>A green card confirms you are in. It gives you three things:</p>
+<ul>
+<li>your <strong>racer number</strong>, counted within this race (1, 2, 3…)</li>
+<li>your <strong>wave</strong></li>
+<li>the time you called</li>
+</ul>
+<figure><img src="docs/screenshots/signup-3-confirm.png" alt="The &quot;You're in&quot; confirmation card" loading="lazy" width="390" height="844"><figcaption>The &quot;You're in&quot; confirmation card</figcaption></figure>
+<p>Note the words <strong>"for now"</strong>. Waves regroup as people sign up. They lock when the first wave starts. If you sign up after that, you join the next wave still waiting on the line.</p>
+<h3 id="5-check-the-start-list">5. Check the start list</h3>
+<p>Scroll down to see every wave and who is in it. Each wave shows the range of calls it covers, so you can see why you landed where you did.</p>
+<figure><img src="docs/screenshots/signup-5-startlist.png" alt="The start list, grouped into waves" loading="lazy" width="390" height="844"><figcaption>The start list, grouped into waves</figcaption></figure>
+<h3 id="how-waves-work">How waves work</h3>
+<ul>
+<li>People whose calls sit within <strong>five minutes</strong> of each other share a wave.</li>
+<li><strong>Wave 1 holds the slowest calls.</strong> The last wave holds the quickest. Waves leave in number order and everyone comes home together.</li>
+<li>There are never more than six waves. If the field spreads wider, the closest groups merge.</li>
+<li>The start list is read-only. Nobody can remove a name from the sign-up phone. Ask the organiser.</li>
+</ul>
+<h3 id="if-something-goes-wrong">If something goes wrong</h3>
+<p>The form tells you what to fix. These are the messages you may see.</p>
+<figure><img src="docs/screenshots/signup-4-error.png" alt="A sign-up error" loading="lazy" width="390" height="844"><figcaption>A sign-up error</figcaption></figure>
+<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<thead>
+<tr>
+<th>You see</th>
+<th>What it means</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Pop your name in first."</td>
+<td>The name box is empty.</td>
+<td>Type your name.</td>
+</tr>
+<tr>
+<td>"Give us a predicted time — even a rough one."</td>
+<td>Both time boxes are empty.</td>
+<td>Enter minutes, seconds, or both.</td>
+</tr>
+<tr>
+<td>"Nought is not a time. What are you chasing?"</td>
+<td>Your time adds up to zero, for example <code>0</code> in Minutes and nothing in Seconds.</td>
+<td>Enter a real time.</td>
+</tr>
+<tr>
+<td>"Minutes needs to be a whole number between 0 and 599."</td>
+<td>The minutes box has a decimal or an out-of-range number.</td>
+<td>Use whole numbers only.</td>
+</tr>
+<tr>
+<td>"Seconds needs to be a whole number between 0 and 59."</td>
+<td>Same, for seconds.</td>
+<td>Use 0 to 59.</td>
+</tr>
+<tr>
+<td>"<em>Name</em> is already on the start list for race <em>N</em>."</td>
+<td>Someone already signed up with that name.</td>
+<td>Add a surname or nickname.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Typed the wrong time? Tell the organiser. They can fix it from race control (see <a href="#edit-a-racer">Edit a racer</a>).</p>
+<hr />
+<h2 id="part-2-admin-dashboard">Part 2: Admin dashboard</h2>
+<p>You run the day. You have three jobs: set up, start the waves and stop the clocks, then hand out prizes.</p>
+<h3 id="the-admin-page">The admin page</h3>
+<p>Open <code>admin.html</code>. It has one job: send you to the right page. It has two buttons.</p>
+<figure><img src="docs/screenshots/admin-1-splash.png" alt="The admin page" loading="lazy" width="390" height="844"><figcaption>The admin page</figcaption></figure>
+<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<thead>
+<tr>
+<th>Button</th>
+<th>Where it goes</th>
+<th>Use it for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Open sign-up</strong></td>
+<td><code>index.html</code></td>
+<td>Handing a phone to whoever signs people up</td>
+</tr>
+<tr>
+<td><strong>Open race control</strong></td>
+<td><code>boltresults.html</code></td>
+<td>Starting waves, stopping clocks, results, series</td>
+</tr>
+</tbody>
+</table></div>
+<p>The sign-up page and race control do not link to each other. That is on purpose. A phone passed around the sign-up table cannot reach race control. This page is the only way between them.</p>
+<h3 id="before-race-day">Before race day</h3>
+<ol>
+<li><strong>Connect the Google Sheet.</strong> Without it, the app stores everything in one browser on one device. Closing the browser or swapping phones loses it. The top-right pill tells you the state. Aim for <strong>Synced</strong>. Other states: <em>Local only</em> (no sheet connected), <em>Saving 2…</em> (sending), <em>Offline — 2 to send</em> (waiting for signal), <em>Sheet unreachable</em>, and <em>Not saving on this device</em> (the browser is blocking storage, so switch browsers). Setup steps are in <code>README.md</code> under "Connecting the Google Sheet".</li>
+<li><strong>Pick the race.</strong> Open race control and tap <strong>1</strong> to <strong>5</strong> under "Which race". The choice sticks to that device and appears in the address as <code>?race=2</code>. Sign-up follows whichever race is set on its device. Set the race first, then hand out the sign-up phone.</li>
+<li><strong>Pick one timing device.</strong> Start waves and stop clocks from the same phone. See <a href="#timing-tips">Timing tips</a>.</li>
+</ol>
+<h3 id="race-control">Race control</h3>
+<p>Open race control from the admin page. The bottom bar has three tabs: <strong>Timing</strong>, <strong>Results</strong> and <strong>Series</strong>.</p>
+<figure><img src="docs/screenshots/admin-2-timing-before.png" alt="Race control before the first gun" loading="lazy" width="390" height="844"><figcaption>Race control before the first gun</figcaption></figure>
+<p>The dark panel at the top is the <strong>race clock</strong>. It starts at the first gun. It stays stuck to the top of the screen as you scroll.</p>
+<h4 id="start-the-waves">Start the waves</h4>
+<p>Scroll to <strong>Waves</strong>. Each wave has its own card, its own clock and its own start button.</p>
+<ol>
+<li>Tap <strong>Start wave 1</strong> when the gun goes. Confirm the pop-up. The clock begins at once.</li>
+<li>The other waves now show a <strong>target start</strong>. It is the time that brings each wave home with wave 1.</li>
+<li>When a target reaches zero, it says <strong>Start now</strong>. The app never starts a wave for you. Tap <strong>Start wave N</strong> yourself.</li>
+<li>Need to go early or late? Tap <strong>−30s</strong> or <strong>+30s</strong>. The nudge moves that one wave only. It goes to the sheet, so every phone counts down to the same time. If two phones nudge at once, the last one to reach the sheet wins.</li>
+</ol>
+<figure><img src="docs/screenshots/admin-4-running.png" alt="Wave 1 running, wave 2 counting down" loading="lazy" width="390" height="844"><figcaption>Wave 1 running, wave 2 counting down</figcaption></figure>
+<h4 id="stop-each-racers-clock">Stop each racer's clock</h4>
+<p>Stop each racer as they cross the line. Two ways:</p>
+<ul>
+<li><strong>Tap Finish</strong> on their row.</li>
+<li><strong>Finish by name.</strong> Type their name in the box at the top and tap <strong>Stop their clock</strong>. This is the quickest option in a crowd.</li>
+</ul>
+<figure><img src="docs/screenshots/admin-5-finish-by-name.png" alt="Finish by name" loading="lazy" width="390" height="844"><figcaption>Finish by name</figcaption></figure>
+<p>A finished row shows the racer's time, how far over or under their call they were, and an <strong>Undo</strong> button. Undo puts them back out on the course.</p>
+<p>When the last racer is home, the race clock and every wave clock stop together. Undo a finish and they all start again.</p>
+<figure><img src="docs/screenshots/admin-7-done.png" alt="All racers home" loading="lazy" width="390" height="844"><figcaption>All racers home</figcaption></figure>
+<h4 id="edit-a-racer">Edit a racer</h4>
+<p>Tap <strong>Edit racer</strong> on any row. One panel opens.</p>
+<figure><img src="docs/screenshots/admin-6-edit-racer.png" alt="The Edit racer panel" loading="lazy" width="390" height="844"><figcaption>The Edit racer panel</figcaption></figure>
+<ul>
+<li><strong>Fix a mistyped call.</strong> Change Minutes and Seconds.</li>
+<li><strong>Move them to another wave.</strong> Pick wave 1 to 6, or leave <strong>Auto</strong> and let the app group them.</li>
+<li>Tap <strong>Save changes</strong>.</li>
+</ul>
+<p>Before the first gun, a changed call regroups the whole field. After the gun, waves are locked. Only the time they are measured against changes. That is how you correct a result after the race. A racer you moved by hand stays where you put them. <strong>Auto</strong> hands them back to the app.</p>
+<h4 id="take-someone-out">Take someone out</h4>
+<p>The same panel has a red <strong>Take out of the race</strong> zone.</p>
+<ul>
+<li><strong>DNS (did not start)</strong> works before the racer's wave starts.</li>
+<li><strong>DNF (did not finish)</strong> works once their wave is running. You can add a reason.</li>
+</ul>
+<p>Both ask you to confirm. The row then shows a red tag and a <strong>Put back</strong> button. Put back reverses it. A racer who is out has no result and does not hold the race clock open.</p>
+<blockquote>
+<p><strong>Before you use DNS or DNF on a shared sheet,</strong> paste the latest <code>apps-script.gs</code> into the sheet first. It adds the columns these need. Same goes for hand-set waves.</p>
+</blockquote>
+<h4 id="race-admin">Race admin</h4>
+<p>At the bottom of the Timing tab:</p>
+<ul>
+<li><strong>Clear race N times, keep racers</strong> wipes the times and keeps the start list. It also undoes any DNF, unlocks the waves and clears wave nudges. DNS stays. Use it after a practice run.</li>
+<li><strong>Wipe race N</strong> removes the racers, the times and the prizes you made up.</li>
+</ul>
+<p>Both touch the current race only. The other four races stay as they are.</p>
+<h3 id="results">Results</h3>
+<p>Tap <strong>Results</strong>. The leaderboard updates as racers finish. It ranks everyone by the gap between their actual time and their call.</p>
+<figure><img src="docs/screenshots/admin-8-results.png" alt="The leaderboard and medals" loading="lazy" width="390" height="844"><figcaption>The leaderboard and medals</figcaption></figure>
+<p>The top three get automatic medal cards:</p>
+<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<thead>
+<tr>
+<th>Prize</th>
+<th>Who gets it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Closest to the call</td>
+<td>Smallest gap (gold)</td>
+</tr>
+<tr>
+<td>2nd closest</td>
+<td>Second-smallest gap (silver)</td>
+</tr>
+<tr>
+<td>3rd closest</td>
+<td>Third-smallest gap (bronze)</td>
+</tr>
+<tr>
+<td>Furthest from the call</td>
+<td>Largest gap. Shows once more than three racers are home. Dark navy, not a medal.</td>
+</tr>
+</tbody>
+</table></div>
+<p>Scroll down for the full table.</p>
+<figure><img src="docs/screenshots/admin-8b-table.png" alt="The full results table" loading="lazy" width="390" height="844"><figcaption>The full results table</figcaption></figure>
+<p><strong>Hand out your own prizes.</strong> Best hat. Best excuse. Whatever the day throws up.</p>
+<ol>
+<li>Under <strong>Make one up</strong>, type the prize name.</li>
+<li>Pick the racer in <strong>Give it to</strong>.</li>
+<li>Tap <strong>Award it</strong>.</li>
+</ol>
+<figure><img src="docs/screenshots/admin-9-adhoc-prize.png" alt="Awarding an adhoc prize" loading="lazy" width="390" height="844"><figcaption>Awarding an adhoc prize</figcaption></figure>
+<p>Per-race prizes do not depend on the series. Someone who turns up once can win every prize on the day.</p>
+<h3 id="series">Series</h3>
+<p>Tap <strong>Series</strong> to see standings across all five races.</p>
+<figure><img src="docs/screenshots/admin-10-series.png" alt="Series standings" loading="lazy" width="390" height="844"><figcaption>Series standings</figcaption></figure>
+<p>The scoring is printed on the page, so nobody has to guess:</p>
+<ol>
+<li><strong>Best four of five.</strong> Your four best races count. Race all five and your worst one drops. It still shows in the table, struck through.</li>
+<li><strong>Finish four to qualify.</strong> Anyone on fewer than four sits below the qualifiers, ranked <code>—</code>.</li>
+<li><strong>Smallest total wins.</strong> Add up the gaps from your four best races.</li>
+</ol>
+<p>A minute under your call costs the same as a minute over.</p>
+<p>Two series prizes:</p>
+<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<thead>
+<tr>
+<th>Prize</th>
+<th>Who gets it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grand prize</td>
+<td>Smallest best-four total, among people who finished at least four races</td>
+</tr>
+<tr>
+<td>Most consistent</td>
+<td>Lowest average gap, across at least three completed races</td>
+</tr>
+</tbody>
+</table></div>
+<p>The two are separate. Someone with three near-perfect races can win Most consistent without qualifying for the grand prize.</p>
+<h3 id="timing-tips">Timing tips</h3>
+<ul>
+<li><strong>Time from one device.</strong> Each time is "finish minus wave start", both read from the device clock. Two phones a few seconds apart produce times a few seconds apart. Start each wave and stop its racers on the same phone, or on phones whose clocks agree.</li>
+<li><strong>Lost signal is fine.</strong> Actions taken offline wait in a queue. They send when the signal returns. No time gets lost.</li>
+<li><strong>Refresh</strong> pulls the latest from the sheet. The app also checks on its own every few seconds.</li>
+</ul>
+<h3 id="quick-checklist-for-race-day">Quick checklist for race day</h3>
+<ul>
+<li class="check"><span class="box" aria-hidden="true"></span>Sheet connected. Pill says <strong>Synced</strong>.</li>
+<li class="check"><span class="box" aria-hidden="true"></span>Race number set on race control.</li>
+<li class="check"><span class="box" aria-hidden="true"></span>Sign-up phone open on the sign-up page.</li>
+<li class="check"><span class="box" aria-hidden="true"></span>One phone chosen for timing.</li>
+<li class="check"><span class="box" aria-hidden="true"></span>Wave 1 started at the gun. Other waves started at <strong>Start now</strong>.</li>
+<li class="check"><span class="box" aria-hidden="true"></span>Every racer finished, or marked DNS or DNF.</li>
+<li class="check"><span class="box" aria-hidden="true"></span>Results checked. Adhoc prizes awarded.</li>
+</ul>
+    </main>
+  </div>
+</body>
+</html>
