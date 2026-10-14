@@ -75,7 +75,7 @@ function renderControl(v) {
     clock.textContent = '0:00';
   }
 
-  const outstanding = v.list.filter(r => !r.finishAt).length;
+  const outstanding = v.list.filter(r => !r.finishAt && !isOut(r)).length;
   $('#clockSub').textContent =
     !hasRacers ? 'Nobody on the start list yet.'
       : !first ? `Waiting on wave 1. ${v.list.length} ready to go.`
@@ -93,8 +93,11 @@ function renderControl(v) {
     if (!members.length) return;
 
     const start = waveStart(v, wave);
-    const home = members.filter(r => r.finishAt).length;
-    const done = start && home === members.length;
+    // Anyone taken out of the race (DNS, DNF) is neither home nor still to come.
+    const active = members.filter(r => !isOut(r));
+    const outCount = members.length - active.length;
+    const home = active.filter(r => r.finishAt).length;
+    const done = start && home === active.length;
 
     const block = document.createElement('section');
     block.className = 'wave-block';
@@ -102,7 +105,7 @@ function renderControl(v) {
       <div class="wave-bar ${start ? (done ? 'done' : 'running') : 'pending'}">
         <div class="wave-bar-main">
           <h3>Wave ${wave}</h3>
-          <p class="wave-meta">${home} of ${members.length} home</p>
+          <p class="wave-meta">${home} of ${active.length} home${outCount ? ` · ${outCount} out` : ''}</p>
         </div>
         <p class="wave-clock ${waveClockClass(start, stopped)}"${start && !stopped ? ` data-live-from="${start}"` : ''}>${waveClockText(start, stopped)}</p>
       </div>
@@ -212,38 +215,54 @@ function nudgeMessage(wave) {
 }
 
 function timingRow(r, v, start) {
+  const out = isOut(r);
   const row = document.createElement('div');
-  row.className = 'timing-row';
+  row.className = 'timing-row' + (out ? ' is-out' : '');
   row.innerHTML = '<span class="timing-result"></span>';
   row.prepend(rosterWho(r));
 
-  /* The two row editors sit together, against the name, away from Finish. */
+  /* The editor sits with the name and the tags, away from Finish. Nothing else is ever
+     parked beside Finish — it is the one control that must not be pressed by accident. */
   const actions = document.createElement('span');
   actions.className = 'timing-actions';
-  actions.append(editCallButton(r), moveWaveButton(r, v));
-  if (r.waveOverride) {
+  if (out) {
     const tag = document.createElement('span');
-    tag.className = 'status-tag';
-    tag.textContent = 'Wave set by hand';
+    tag.className = 'status-tag out';
+    tag.textContent = `${r.status.toUpperCase()} · ${OUT_WORDS[r.status]}`;
     actions.append(tag);
+    if (r.statusNote) {
+      const why = document.createElement('span');
+      why.className = 'status-tag';
+      why.textContent = `Reason: ${r.statusNote}`;
+      actions.append(why);
+    }
   } else {
-    const fits = callMismatch(v, r);
-    if (fits) {
+    actions.append(editRacerButton(r));
+    if (r.waveOverride) {
       const tag = document.createElement('span');
       tag.className = 'status-tag';
-      tag.textContent = `Call fits wave ${fits}`;
-      tag.title = 'Joined after the first gun, or the call was edited after it. The wave stays put.';
+      tag.textContent = 'Wave set by hand';
       actions.append(tag);
     }
   }
   row.insertBefore(actions, row.querySelector('.timing-result'));
-  if (callEdit && callEdit.id === r.id) row.append(callEditForm(r, v));
-  if (waveEdit && waveEdit.id === r.id) row.append(waveEditForm(r, v));
+  if (racerEdit && racerEdit.id === r.id && !out) row.append(racerEditPanel(r, v));
 
   const cell = row.querySelector('.timing-result');
   const res = result(r, v);
 
-  if (res) {
+  if (out) {
+    /* Put back takes the place Finish had. It reverses the status, so it carries the quiet
+       reversal look (red hover) the app already uses for Undo. */
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'quiet-button';
+    btn.dataset.focusKey = `putback:${r.id}`;
+    btn.textContent = 'Put back';
+    btn.setAttribute('aria-label', `Put ${r.name} back in the race (was ${r.status.toUpperCase()})`);
+    btn.addEventListener('click', () => putBack(r));
+    cell.append(btn);
+  } else if (res) {
     const elapsed = document.createElement('span');
     elapsed.className = 'timing-elapsed';
     elapsed.textContent = fmtClock(res.elapsed);
@@ -293,322 +312,367 @@ function timingRow(r, v, start) {
   return row;
 }
 
-/* ── Correcting a call ─────────────────────────────────────────────────── */
+/* ── Editing one racer ─────────────────────────────────────────────────── */
 
-/* One row at a time is open for editing, and the open editor is state, not DOM.
-   It has to be: renderControl() throws the whole wave list away and rebuilds it, and
-   the sheet poll calls render() every few seconds, so a form that existed only in the
-   DOM would be snatched away mid-correction — the same trap the confirmation card on
-   the sign-up page is written around. Keeping what has been typed here means the
-   rebuild puts the form back exactly as it was, and data-focus-key on the two boxes
-   lets keepFocus() drop the caret back into the one that had it.
+/* One button, one panel: the predicted time and the wave under one Save, and a separate
+   "Take out of the race" zone for DNS and DNF.
 
-   Shape: { id, minutes, seconds, error: { message, field } | null }. */
-let callEdit = null;
+   One row at a time is open, and the open panel is state, not DOM. It has to be:
+   renderControl() throws the whole wave list away and rebuilds it, and the sheet poll calls
+   render() every few seconds, so a form that existed only in the DOM would be snatched away
+   mid-correction. Keeping what has been typed here means the rebuild puts the panel back
+   exactly as it was, and data-focus-key on the boxes lets keepFocus() drop the caret back
+   into the one that had it.
 
-/** The trigger on a racer's row. Sits with the call it changes — see below. */
-function editCallButton(r) {
-  const open = !!callEdit && callEdit.id === r.id;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  /* .neutral because this is not a reversal and not a removal: the plain .quiet-button
-     hover goes red, which on Edit call would promise something the button does not do. */
-  btn.className = 'quiet-button neutral';
-  btn.dataset.focusKey = `call:${r.id}`;
-  btn.textContent = 'Edit call';
-  btn.setAttribute('aria-label', `Edit the predicted time for ${r.name}, currently ${fmtSec(r.predictedSec)}`);
-  btn.setAttribute('aria-expanded', String(open));
-  if (open) btn.setAttribute('aria-controls', callEditIds(r).form);
-  btn.addEventListener('click', () => (open ? closeCallEdit(r.id) : openCallEdit(r)));
-  return btn;
-}
+   Shape: { id, minutes, seconds, choice, note, review, error: { message, field } | null }.
+   `choice` is the wave select's value — '' for auto, '1'–'6' for a wave. `review` is null,
+   'dns' or 'dnf': which outcome's red review card is showing. `field` is 'minutes',
+   'seconds', 'wave', 'none' (nothing to save) or 'review' (the card's own message). */
+let racerEdit = null;
+
+const NOTHING_TO_SAVE = 'Nothing to save yet. Change the time or the wave, or Cancel.';
 
 /* Ids are built off the race NUMBER, not the id: `number` is coerced through Number()
    in cleanRace(), so it cannot carry anything that would break out of an attribute.
    `id` is a string off the sheet and only ever goes into dataset or a CSS.escape(). */
-const callEditIds = r => ({
-  form: `callEdit-${r.number}`,
-  minutes: `callMinutes-${r.number}`,
-  seconds: `callSeconds-${r.number}`,
-  help: `callHelp-${r.number}`,
-  error: `callError-${r.number}`
+const racerEditIds = r => ({
+  panel: `racerEdit-${r.number}`,
+  title: `racerEditTitle-${r.number}`,
+  minutes: `racerMinutes-${r.number}`,
+  seconds: `racerSeconds-${r.number}`,
+  wave: `racerWave-${r.number}`,
+  help: `racerHelp-${r.number}`,
+  error: `racerError-${r.number}`,
+  zone: `racerZone-${r.number}`,
+  why: `racerWhy-${r.number}`,
+  note: `racerNote-${r.number}`,
+  reviewError: `racerReviewError-${r.number}`
 });
 
-function openCallEdit(r) {
-  waveEdit = null; // one editor open at a time, across both kinds
-  callEdit = {
+/** The one trigger on a racer's row. */
+function editRacerButton(r) {
+  const open = !!racerEdit && racerEdit.id === r.id;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  /* .neutral because this is not a reversal and not a removal: the plain .quiet-button
+     hover goes red, which on a button that only opens a panel would be a lie. */
+  btn.className = 'quiet-button neutral';
+  btn.dataset.focusKey = `edit:${r.id}`;
+  btn.textContent = 'Edit racer';
+  btn.setAttribute('aria-label', `Edit racer ${r.name}: call time, wave, DNS or DNF`);
+  btn.setAttribute('aria-expanded', String(open));
+  if (open) btn.setAttribute('aria-controls', racerEditIds(r).panel);
+  btn.addEventListener('click', () => (open ? closeRacerEdit(r.id) : openRacerEdit(r)));
+  return btn;
+}
+
+function openRacerEdit(r) {
+  racerEdit = {
     id: r.id,
     minutes: String(Math.floor(r.predictedSec / 60)),
     seconds: String(r.predictedSec % 60),
+    choice: r.waveOverride ? String(r.waveOverride) : '',
+    note: '',
+    review: null,
     error: null
   };
   render();
-  focusCallBox(r.id, 'minutes');
+  focusByKey(`racer-min:${r.id}`);
 }
 
 /* Focus is moved AFTER render(), never during it. renderControl() builds each row and
-   its editor detached and appends the finished wave block afterwards, and .focus() on a
-   node that is not in the document yet does nothing at all — silently. That cost the
-   error path its "land on the box you have to fix" behaviour until a browser check caught
-   it; reading the code did not, because the focus call was plainly there. */
-function focusCallBox(id, field) {
-  focusByKey(`${field === 'seconds' ? 'call-sec' : 'call-min'}:${id}`);
-}
-
-/** Back to the Edit call button that opened the editor — the one place focus can go. */
-const focusCallTrigger = id => focusByKey(`call:${id}`);
-
+   its panel detached and appends the finished wave block afterwards, and .focus() on a
+   node that is not in the document yet does nothing at all — silently. */
 function focusByKey(key) {
   const el = document.querySelector(`[data-focus-key="${CSS.escape(key)}"]`);
   if (el) el.focus();
 }
 
-/** The form is about to disappear, so this decides where focus lands: back on the trigger. */
-function closeCallEdit(id) {
-  callEdit = null;
+/** The panel is about to disappear, so this decides where focus lands: back on Edit racer. */
+function closeRacerEdit(id) {
+  racerEdit = null;
   render();
-  focusCallTrigger(id);
+  focusByKey(`edit:${id}`);
 }
 
-function failCallEdit(message, field) {
-  callEdit.error = { message, field };
-  const id = callEdit.id;
+function failRacerEdit(message, field) {
+  racerEdit.error = { message, field };
+  const id = racerEdit.id;
   render();
-  focusCallBox(id, field);
+  focusByKey(field === 'seconds' ? `racer-sec:${id}` : field === 'wave' ? `racer-wave:${id}` : `racer-min:${id}`);
 }
 
-function saveCallEdit(r) {
-  const state = callEdit;
+/** One Save for the time and the wave. Reuses the same two mutations the old buttons did. */
+function saveRacerEdit(r) {
+  const state = racerEdit;
   const parsed = parsePredictedTime(state.minutes, state.seconds);
-  if (!parsed.ok) return failCallEdit(parsed.error, parsed.field);
+  if (!parsed.ok) return failRacerEdit(parsed.error, parsed.field);
 
-  /* Closed before the mutation, so setPredictedTime's own render draws the tidied row
-     and there is no second rebuild to undo the first. */
-  callEdit = null;
-  const outcome = setPredictedTime(r.id, parsed.predictedSec);
-  if (!outcome.ok) {
-    callEdit = state;
-    return failCallEdit(outcome.error, 'minutes');
+  const timeChanged = parsed.predictedSec !== r.predictedSec;
+  const waveChanged = state.choice !== (r.waveOverride ? String(r.waveOverride) : '');
+  if (!timeChanged && !waveChanged) return failRacerEdit(NOTHING_TO_SAVE, 'none');
+
+  /* Closed before the mutations, so their own renders draw the tidied row and there is no
+     second rebuild to undo the first. The wave goes first because it is the one that can be
+     refused, and a refusal must leave the call untouched. */
+  racerEdit = null;
+  if (waveChanged) {
+    const outcome = setRacerWave(r.id, state.choice === '' ? null : Number(state.choice));
+    if (!outcome.ok) {
+      racerEdit = state;
+      return failRacerEdit(outcome.error, 'wave');
+    }
+  }
+  if (timeChanged) {
+    const outcome = setPredictedTime(r.id, parsed.predictedSec);
+    if (!outcome.ok) {
+      racerEdit = state;
+      return failRacerEdit(outcome.error, 'minutes');
+    }
   }
 
-  focusCallTrigger(r.id);
-
-  /* Before the first gun the wave is still fluid, so it is hedged the same way the
-     sign-up confirmation hedges it. Stating a fluid wave as settled is a promise the
-     app cannot keep. */
-  announce(`${outcome.racer.name}'s call is now ${fmtSec(parsed.predictedSec)}. `
-    + (outcome.locked ? `Wave ${outcome.wave}, unchanged.` : `Wave ${outcome.wave} for now.`));
+  focusByKey(`edit:${r.id}`);
+  const now = racerById(raceView(), r.id);
+  const parts = [];
+  if (timeChanged) parts.push(`call is now ${fmtSec(parsed.predictedSec)}`);
+  if (waveChanged) parts.push(now.waveOverride ? `wave is ${now.waveOverride}, set by hand` : 'wave is back on auto');
+  announce(`Saved. ${r.name}'s ${parts.join(' and ')}.`);
 }
 
-function callEditForm(r, v) {
-  const state = callEdit;
-  const id = callEditIds(r);
-  const form = document.createElement('form');
-  form.className = 'timing-edit';
-  form.id = id.form;
-  form.noValidate = true;
-  form.innerHTML = `
-    <fieldset class="time-field">
-      <legend></legend>
-      <div class="two-columns">
-        <span class="field">
-          <label for="${id.minutes}">Minutes</label>
-          <input id="${id.minutes}" name="minutes" type="number" inputmode="numeric" min="0" max="599" step="1" placeholder="0" aria-describedby="${id.help}" />
-        </span>
-        <span class="field">
-          <label for="${id.seconds}">Seconds</label>
-          <input id="${id.seconds}" name="seconds" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" aria-describedby="${id.help}" />
-        </span>
+/** Open the red review card for one outcome. Nothing is saved until its own button is pressed. */
+function reviewOut(r, kind) {
+  racerEdit.review = kind;
+  racerEdit.note = '';
+  racerEdit.error = null;
+  render();
+  focusByKey(`out-head:${r.id}`);
+}
+
+function confirmOut(r) {
+  const state = racerEdit;
+  const kind = state.review;
+  racerEdit = null;
+  const outcome = setRacerStatus(r.id, kind, state.note);
+  if (!outcome.ok) {
+    racerEdit = state;
+    state.error = { message: outcome.error, field: 'review' };
+    render();
+    focusByKey(`out-head:${r.id}`);
+    return;
+  }
+  focusByKey(`putback:${r.id}`);
+  const reason = outcome.racer.statusNote;
+  announce(`${r.name} is marked ${kind.toUpperCase()}.${reason ? ` Reason: ${reason}.` : ''}`);
+}
+
+function putBack(r) {
+  const was = r.status.toUpperCase();
+  const outcome = setRacerStatus(r.id, '');
+  if (!outcome.ok) return announce(outcome.error);
+  focusByKey(`edit:${r.id}`);
+  announce(`${r.name} is back in the race (was ${was}).`);
+}
+
+function racerEditPanel(r, v) {
+  const state = racerEdit;
+  const id = racerEditIds(r);
+  const open = outOptions(v, r);
+  /* The race can move on under an open review card (another phone fires the gun), so a
+     review for an outcome that has just closed is dropped rather than left to fail at Save. */
+  if (state.review && !open[state.review]) state.review = null;
+
+  const panel = document.createElement('div');
+  panel.className = 'timing-edit';
+  panel.id = id.panel;
+  panel.setAttribute('role', 'group');
+  panel.setAttribute('aria-labelledby', id.title);
+  panel.innerHTML = `
+    <h4 class="timing-edit-title" id="${id.title}"></h4>
+    <form class="edit-form" novalidate>
+      <fieldset class="time-field">
+        <legend class="visually-hidden"></legend>
+        <div class="edit-fields">
+          <span class="field">
+            <label for="${id.minutes}">Minutes</label>
+            <input id="${id.minutes}" name="minutes" type="number" inputmode="numeric" min="0" max="599" step="1" placeholder="0" aria-describedby="${id.help}" />
+          </span>
+          <span class="field">
+            <label for="${id.seconds}">Seconds</label>
+            <input id="${id.seconds}" name="seconds" type="number" inputmode="numeric" min="0" max="59" step="1" placeholder="00" aria-describedby="${id.help}" />
+          </span>
+          <span class="field wide">
+            <label for="${id.wave}">Wave</label>
+            <select id="${id.wave}" name="wave"></select>
+          </span>
+        </div>
+      </fieldset>
+      <p class="helper-text" id="${id.help}">Leave a box empty and we count it as zero.</p>
+      <p class="form-error hidden" id="${id.error}" role="alert"></p>
+      <div class="dialog-footer">
+        <button type="button" class="secondary-button">Cancel</button>
+        <button type="submit" class="save-button">Save changes</button>
       </div>
-      <p class="helper-text" id="${id.help}"></p>
-    </fieldset>
-    <p class="form-error hidden" id="${id.error}" role="alert"></p>
-    <div class="dialog-footer">
-      <button type="button" class="secondary-button">Cancel</button>
-      <button type="submit" class="save-button">Save the call</button>
-    </div>`;
+    </form>
+    <section class="take-out" id="${id.zone}" aria-labelledby="${id.zone}-h">
+      <h4 id="${id.zone}-h">Take out of the race</h4>
+    </section>`;
 
   /* Racer names come off a sheet anybody with the sign-up link can write to, so they go
      in as text, never as markup — same rule the roster and the board follow. */
-  form.querySelector('legend').textContent = `New predicted time for ${r.name}`;
-  form.querySelector('.helper-text').textContent = callEditHelp(r, v);
+  panel.querySelector('.timing-edit-title').textContent = `Edit ${r.name}`;
+  panel.querySelector('legend').textContent = `Predicted time and wave for ${r.name}`;
 
+  const form = panel.querySelector('.edit-form');
   const minutes = form.querySelector('input[name="minutes"]');
   const seconds = form.querySelector('input[name="seconds"]');
+  const select = form.querySelector('select');
   const err = form.querySelector('.form-error');
 
-  minutes.value = state.minutes;
-  seconds.value = state.seconds;
-  minutes.dataset.focusKey = `call-min:${r.id}`;
-  seconds.dataset.focusKey = `call-sec:${r.id}`;
-
-  [minutes, seconds].forEach(box => {
-    box.addEventListener('input', () => {
-      if (callEdit !== state) return; // a poll rebuilt the form; this one is a ghost
-      state.minutes = minutes.value;
-      state.seconds = seconds.value;
-      if (box.getAttribute('aria-invalid') === 'true') {
-        state.error = null;
-        clearFieldErrors(err, [minutes, seconds]);
-      }
-    });
-  });
-
-  /* Wires the ARIA and shows the message, but never moves the caret: this runs on every
-     render, including the four-second sheet poll, and nothing should yank focus out of the
-     box someone is mid-way through correcting. failCallEdit() does the one focus move
-     there is, after the row is in the document. */
-  if (state.error) {
-    const target = state.error.field === 'seconds' ? seconds : minutes;
-    showFieldError(err, state.error.message, target, { moveFocus: false });
-  }
-
-  form.addEventListener('submit', e => { e.preventDefault(); saveCallEdit(r); });
-  form.querySelector('.secondary-button').addEventListener('click', () => closeCallEdit(r.id));
-  /* Opened the wrong row is the common mistake, so the common escape hatch works. Not a
-     dialog and nothing is trapped here — this is a convenience, not the only way out. */
-  form.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    e.preventDefault();
-    closeCallEdit(r.id);
-  });
-  return form;
-}
-
-/** What changing this call is about to do — stated before it is pressed, not after. */
-function callEditHelp(r, v) {
-  return [
-    'Leave a box empty and we count it as zero.',
-    v.data.wavesLocked
-      ? `Waves are locked in, so wave ${v.map.get(r.id)} stays wave ${v.map.get(r.id)}.`
-      : 'Waves have not locked yet, so this can move them — and whoever is closest to them — into a different wave.',
-    r.finishAt ? 'They are already home, so their result on the board changes too.' : ''
-  ].filter(Boolean).join(' ');
-}
-
-/* ── Moving a racer to another wave ────────────────────────────────────── */
-
-/* Same shape and the same reasons as callEdit above: the open editor is state, so the
-   four-second poll puts it back as it was. Shape: { id, choice, error }. `choice` is the
-   select's value as a string — '' for auto, '1'–'4' for a wave. */
-let waveEdit = null;
-
-const waveEditIds = r => ({
-  form: `waveEdit-${r.number}`,
-  select: `waveSelect-${r.number}`,
-  help: `waveHelp-${r.number}`,
-  error: `waveError-${r.number}`
-});
-
-function moveWaveButton(r, v) {
-  const open = !!waveEdit && waveEdit.id === r.id;
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'quiet-button neutral';
-  btn.dataset.focusKey = `wave:${r.id}`;
-  btn.textContent = 'Move wave';
-  btn.setAttribute('aria-label', `Move ${r.name} to another wave, currently wave ${v.map.get(r.id)}`
-    + (r.waveOverride ? ', set by hand' : ''));
-  btn.setAttribute('aria-expanded', String(open));
-  if (open) btn.setAttribute('aria-controls', waveEditIds(r).form);
-  btn.addEventListener('click', () => (open ? closeWaveEdit(r.id) : openWaveEdit(r)));
-  return btn;
-}
-
-function openWaveEdit(r) {
-  callEdit = null;
-  waveEdit = { id: r.id, choice: r.waveOverride ? String(r.waveOverride) : '', error: null };
-  render();
-  focusByKey(`wave-select:${r.id}`);
-}
-
-function closeWaveEdit(id) {
-  waveEdit = null;
-  render();
-  focusByKey(`wave:${id}`);
-}
-
-function saveWaveEdit(r) {
-  const state = waveEdit;
-  const choice = state.choice === '' ? null : Number(state.choice);
-  waveEdit = null;
-  const outcome = setRacerWave(r.id, choice);
-  if (!outcome.ok) {
-    waveEdit = state;
-    state.error = outcome.error;
-    render();
-    focusByKey(`wave-select:${r.id}`);
-    return;
-  }
-  focusByKey(`wave:${r.id}`);
-  const name = outcome.racer.name;
-  if (outcome.pinned) announce(`${name} is in wave ${outcome.wave}, set by hand.`);
-  else announce(`${name} is back on auto. Wave ${outcome.wave}${outcome.locked ? ', unchanged' : ' for now'}.`);
-}
-
-function waveEditForm(r, v) {
-  const state = waveEdit;
-  const id = waveEditIds(r);
-  const form = document.createElement('form');
-  form.className = 'timing-edit';
-  form.id = id.form;
-  form.noValidate = true;
-  form.innerHTML = `
-    <label for="${id.select}"></label>
-    <select id="${id.select}" name="wave" aria-describedby="${id.help}"></select>
-    <p class="helper-text" id="${id.help}"></p>
-    <p class="form-error hidden" id="${id.error}" role="alert"></p>
-    <div class="dialog-footer">
-      <button type="button" class="secondary-button">Cancel</button>
-      <button type="submit" class="save-button">Save the wave</button>
-    </div>`;
-
-  form.querySelector('label').textContent = `Which wave does ${r.name} start in?`;
-  const select = form.querySelector('select');
   const current = v.map.get(r.id);
   const auto = document.createElement('option');
   auto.value = '';
-  auto.textContent = v.data.wavesLocked ? `Auto — stay in wave ${current}` : 'Auto — by predicted time';
+  auto.textContent = 'Auto (let the app group them)';
   select.append(auto);
   for (let w = 1; w <= MAX_WAVES; w++) {
     const opt = document.createElement('option');
     opt.value = String(w);
-    opt.textContent = `Wave ${w}` + (waveStart(v, w) !== null ? ' (started)' : '');
+    opt.textContent = `Wave ${w}` + (w === current ? ' (current)' : '');
     select.append(opt);
   }
+
+  minutes.value = state.minutes;
+  seconds.value = state.seconds;
   select.value = state.choice;
-  select.dataset.focusKey = `wave-select:${r.id}`;
+  minutes.dataset.focusKey = `racer-min:${r.id}`;
+  seconds.dataset.focusKey = `racer-sec:${r.id}`;
+  select.dataset.focusKey = `racer-wave:${r.id}`;
+
+  const fields = [minutes, seconds, select];
+  const clearError = () => {
+    if (!state.error || state.error.field === 'review') return;
+    state.error = null;
+    clearFieldErrors(err, fields);
+  };
+  [minutes, seconds].forEach(box => {
+    box.addEventListener('input', () => {
+      if (racerEdit !== state) return; // a poll rebuilt the panel; this one is a ghost
+      state.minutes = minutes.value;
+      state.seconds = seconds.value;
+      clearError();
+    });
+  });
   select.addEventListener('change', () => {
-    if (waveEdit !== state) return; // a poll rebuilt the form; this one is a ghost
+    if (racerEdit !== state) return;
     state.choice = select.value;
-    if (state.error) { state.error = null; clearFieldErrors(form.querySelector('.form-error'), [select]); }
+    clearError();
   });
 
-  form.querySelector('.helper-text').textContent = waveEditHelp(r, v);
-  if (state.error) showFieldError(form.querySelector('.form-error'), state.error, select, { moveFocus: false });
+  /* Wires the ARIA and shows the message, but never moves the caret: this runs on every
+     render, including the four-second sheet poll, and nothing should yank focus out of the
+     box someone is mid-way through correcting. failRacerEdit() does the one focus move
+     there is, after the row is in the document. 'none' has no bad field to mark. */
+  if (state.error && state.error.field !== 'review') {
+    const target = { minutes, seconds, wave: select }[state.error.field] || null;
+    showFieldError(err, state.error.message, target, { moveFocus: false });
+  }
 
-  form.addEventListener('submit', e => { e.preventDefault(); saveWaveEdit(r); });
-  form.querySelector('.secondary-button').addEventListener('click', () => closeWaveEdit(r.id));
-  form.addEventListener('keydown', e => {
+  form.addEventListener('submit', e => { e.preventDefault(); saveRacerEdit(r); });
+  form.querySelector('.secondary-button').addEventListener('click', () => closeRacerEdit(r.id));
+
+  racerTakeOutZone(panel.querySelector('.take-out'), r, open, id);
+
+  /* Opened the wrong row is the common mistake, so the common escape hatch works. Not a
+     dialog and nothing is trapped here — this is a convenience, not the only way out. */
+  panel.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     e.preventDefault();
-    closeWaveEdit(r.id);
+    closeRacerEdit(r.id);
   });
-  return form;
+  return panel;
 }
 
-/** What a move is about to do — stated before Save is pressed, because it differs. */
-function waveEditHelp(r, v) {
-  return [
-    v.data.wavesLocked
-      ? 'Waves are locked in, so only this racer moves. Their clock runs from the new wave\'s start.'
-      : 'A racer set by hand stays in that wave when everyone else regroups. Auto hands them back.',
-    r.finishAt
-      ? 'They are already home, so they can only move to a wave that has started, and their time changes.'
-      : waveStart(v, v.map.get(r.id)) !== null
-        ? 'They are already running. Move them to a wave that has not started and their clock starts again from that gun.'
-        : ''
-  ].filter(Boolean).join(' ');
+/** The dashed red zone: DNS and DNF, or the review card for the one that was tapped. */
+function racerTakeOutZone(zone, r, open, id) {
+  const state = racerEdit;
+
+  if (!state.review) {
+    const buttons = document.createElement('div');
+    buttons.className = 'take-out-buttons';
+    [['dns', 'Did not start (DNS)'], ['dnf', 'Did not finish (DNF)']].forEach(([kind, label]) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'secondary-button danger';
+      btn.dataset.focusKey = `out-${kind}:${r.id}`;
+      btn.textContent = label;
+      if (open[kind]) btn.addEventListener('click', () => reviewOut(r, kind));
+      else {
+        /* aria-disabled rather than disabled, so a screen-reader user can still land on it
+           and hear why — the sentence below is its description. */
+        btn.setAttribute('aria-disabled', 'true');
+        btn.setAttribute('aria-describedby', id.why);
+        btn.classList.add('is-closed');
+        btn.addEventListener('click', e => e.preventDefault());
+      }
+      buttons.append(btn);
+    });
+    const why = document.createElement('p');
+    why.className = 'helper-text';
+    why.id = id.why;
+    why.textContent = open.why;
+    zone.append(buttons);
+    if (!open.dns || !open.dnf) zone.append(why);
+    return;
+  }
+
+  const kind = state.review;
+  const dnf = kind === 'dnf';
+  const form = document.createElement('form');
+  form.className = 'review-form';
+  form.noValidate = true;
+  form.innerHTML = `
+    <div class="review-card">
+      <h5 class="review-title" tabindex="-1"></h5>
+      <ul>
+        <li>They get no result in this race.</li>
+        <li>${dnf ? 'Their clock stops.' : 'They will not start.'}</li>
+        <li>You can put them back from the row.</li>
+      </ul>
+      ${dnf ? `<span class="field">
+        <label for="${id.note}">Reason (optional)</label>
+        <input id="${id.note}" type="text" maxlength="${STATUS_NOTE_MAX}" placeholder="For example: injured, mechanical" autocomplete="off" />
+      </span>` : ''}
+    </div>
+    <p class="form-error hidden" id="${id.reviewError}" role="alert"></p>
+    <div class="dialog-footer">
+      <button type="button" class="secondary-button">Back</button>
+      <button type="submit" class="secondary-button danger">Mark as ${kind.toUpperCase()}</button>
+    </div>`;
+  const head = form.querySelector('.review-title');
+  head.textContent = `Mark ${r.name} as ${kind.toUpperCase()}?`;
+  head.dataset.focusKey = `out-head:${r.id}`;
+
+  if (dnf) {
+    const note = form.querySelector('input');
+    note.value = state.note;
+    note.dataset.focusKey = `out-note:${r.id}`;
+    note.addEventListener('input', () => { if (racerEdit === state) state.note = note.value; });
+    /* Enter here must never mark anyone DNS or DNF by accident: it is a text box inside a
+       form, and a form submits on Enter. The only way to confirm is the button. */
+    note.addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+  }
+
+  if (state.error && state.error.field === 'review') {
+    showFieldError(form.querySelector('.form-error'), state.error.message, null, { moveFocus: false });
+  }
+
+  form.addEventListener('submit', e => { e.preventDefault(); confirmOut(r); });
+  form.querySelector('.secondary-button').addEventListener('click', () => {
+    state.review = null;
+    state.error = null;
+    render();
+    focusByKey(`out-${kind}:${r.id}`);
+  });
+  zone.append(form);
 }
 
 function announceFinish({ racer, res }) {
@@ -631,8 +695,9 @@ const OUTLIER = { kind: 'outlier', eyebrow: 'FURTHEST FROM THE CALL' };
 
 function renderBoard(v) {
   const rows = ranked(v);
-  const running = v.list.filter(r => !r.finishAt);
-  $('#boardEmpty').classList.toggle('hidden', rows.length + running.length > 0);
+  const running = v.list.filter(r => !r.finishAt && !isOut(r));
+  const outRacers = v.list.filter(isOut);
+  $('#boardEmpty').classList.toggle('hidden', rows.length + running.length + outRacers.length > 0);
 
   const podium = $('#podium');
   podium.innerHTML = '';
@@ -685,6 +750,28 @@ function renderBoard(v) {
       <td class="num col-wide">${fmtSec(r.predictedSec)}</td>
       <td class="num col-wide">${live}</td>
       <td class="num"><span class="status-tag">${start ? 'On course' : 'Waiting'}</span></td>`;
+    tr.querySelector('.bib-number').textContent = String(r.number);
+    tr.querySelector('.roster-name').textContent = r.name;
+    body.append(tr);
+  });
+
+  /* Out of the race: listed so nobody wonders where they went, with the words and not just a
+     tint. No rank, and no result to score. */
+  outRacers.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.className = 'is-running';
+    tr.innerHTML = `
+      <td class="col-rank">—</td>
+      <th scope="row" class="col-who">
+        <span class="racer-cell">
+          <span class="bib"><span class="visually-hidden">Racer </span><span class="bib-number"></span></span>
+          <span class="roster-name"></span>
+        </span>
+        <span class="racer-sub">called ${fmtSec(r.predictedSec)} · ${OUT_WORDS[r.status].toLowerCase()}</span>
+      </th>
+      <td class="num col-wide">${fmtSec(r.predictedSec)}</td>
+      <td class="num col-wide">—</td>
+      <td class="num"><span class="status-tag out">${r.status.toUpperCase()} · ${OUT_WORDS[r.status]}</span></td>`;
     tr.querySelector('.bib-number').textContent = String(r.number);
     tr.querySelector('.roster-name').textContent = r.name;
     body.append(tr);
@@ -788,7 +875,7 @@ function renderSeries() {
       const diff = person.diffs[n];
       perRace.push({
         n,
-        text: diff != null ? fmtGap(diff) : (n in person.diffs ? 'TBC' : '—'),
+        text: diff != null ? fmtGap(diff) : person.outs[n] ? person.outs[n].toUpperCase() : (n in person.diffs ? 'TBC' : '—'),
         dropped: person.dropped.includes(n)
       });
     }

@@ -16,7 +16,7 @@ not a picture of one.
 | Page | Who has it open | What is on it |
 |---|---|---|
 | **`index.html`** | The sign-up table, a phone passed around | Name, predicted minutes and seconds, confirmation of race number and wave, the start list |
-| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, an Edit call button on each racer, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
+| **`boltresults.html`** | Whoever is timing, plus the screen everyone crowds round | **Timing** (wave start buttons, per-racer finish buttons, an Edit racer button on each racer, finish-by-number, race admin), **Results** (leaderboard and prizes), **Series** (standings across all five races) |
 | **`admin.html`** | Whoever is setting up on the day | A splash with one button to each of the two pages above — nothing else |
 
 `index.html` and `boltresults.html` are **independent — neither links to the other**.
@@ -43,21 +43,26 @@ being passed around can do on its own.
    remain, so one wave may span more than five minutes. The grouping
    recalculates as people sign up and freezes the moment the first wave starts. Anyone
    who signs up after that joins the next wave still waiting on the line.
-3. **Fixing a call** — a mistyped prediction is corrected on `boltresults.html` →
-   **Timing**, with **Edit call** on the racer's row. Before the first gun that re-buckets
-   them into the wave they now belong in — and can move whoever was closest to them, since
-   the five-minute groups are drawn off the whole field. After it, waves are locked and only
-   the time they are measured against changes, which is what makes a post-race correction
-   possible at all. The sign-up sheet cannot do this: it is a phone passed hand to hand at
-   the start line, and its start list is deliberately read-only.
-4. **Moving someone by hand** — on `boltresults.html` → **Timing**, **Move wave** on a
-   racer's row puts them in any wave from 1 to 4, whatever their call says. Before the first
-   gun they stay in that wave while everyone else regroups around them; **Auto** hands them
-   back. After the gun only they move, and their clock runs from their new wave's start. A
-   racer already running can move to a wave that hasn't started, and their clock starts
-   again from that gun. A racer already home can only move to a wave that has started. A hand-set
-   racer doesn't steer their new wave's gun time. A hand-set wave survives **Clear times**. This needs the updated `apps-script.gs` (it adds a
-   `waveOverride` column to `Racers`), so paste that in before using it on a shared sheet.
+3. **Editing a racer** — on `boltresults.html` → **Timing**, one **Edit racer** button on a
+   racer's row opens one panel. The top fixes a mistyped call and moves them to any wave from 1
+   to 6 (or **Auto**), under one **Save changes**. Before the first gun a changed call
+   re-buckets them, and can move whoever was closest to them, since the five-minute groups are
+   drawn off the whole field. After it, waves are locked and only the time they are measured
+   against changes, which is what makes a post-race correction possible at all. A hand-set
+   wave stays put while everyone else regroups, and **Auto** hands them back; after the gun only
+   they move, and their clock runs from the new wave's start. A hand-set racer doesn't steer
+   their new wave's gun time and survives **Clear times**. A hand-set wave needs the updated `apps-script.gs` (it adds a
+   `waveOverride` column to `Racers`). The sign-up sheet cannot do any of
+   this: it is a phone passed hand to hand at the start line, and its start list is
+   deliberately read-only.
+4. **Taking someone out** — the same panel has a separate **Take out of the race** zone.
+   **DNS** (did not start) is open only before the racer's wave starts; **DNF** (did not
+   finish) only once it runs. Either one asks for a review first, and a DNF takes an optional
+   reason. The row then shows a red tag and **Put back** in place of Finish, and Put back
+   reverses it. A racer who is out has no result, and does not hold the race clock open. This
+   needs the updated `apps-script.gs` (it adds `status` and `statusNote` columns to `Racers`
+   and a `setStatus` action), so paste that in **before** using it on a shared sheet — the
+   page can go live first only if nobody marks a DNS or DNF until the script is updated.
 5. **Start** — on `boltresults.html` → **Timing**, each wave has its own start button
    and its own clock. Once the first wave is off, every wave still on the line counts down
    to a **target start** that brings it home with the first wave: the first gun plus the

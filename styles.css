@@ -380,25 +380,56 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
 }
 .finish-button[disabled] { background: #eef0f4; color: var(--muted) }
 
-/* Edit call sits with the call it changes, hard against the bib and the name, not in the
-   thumb-side cluster: Finish is the one control in this app that must never be pressed by
-   accident, so nothing else is parked next to it. The auto margin here and the one on
-   .timing-result share the free space between them, which puts the time and its button on
-   the right edge and this button on the left — and keeps both when the row wraps. */
-/* Edit call and Move wave travel together in .timing-actions, which carries the auto margin. */
+/* Edit racer sits with the name and the tags, hard against the bib, not in the thumb-side
+   cluster: Finish is the one control in this app that must never be pressed by accident, so
+   nothing else is parked next to it. The auto margin here and the one on .timing-result
+   share the free space between them, which puts the time and its button on the right edge
+   and this button on the left — and keeps both when the row wraps. */
 .timing-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-right: auto }
 
-/* Correcting one racer's call. Drops onto its own line inside the row — the same
-   flex-basis trick .start-button uses inside the wave bar — so the form never squeezes
-   the clock or the Finish button sideways. */
+/* Editing one racer: one panel, two jobs. Drops onto its own line inside the row — the same
+   flex-basis trick .start-button uses inside the wave bar — so it never squeezes the clock or
+   the Finish button sideways. Padding 16px on a phone, 20px from 700px. */
 .timing-edit {
   flex-basis: 100%;
-  margin: 4px 0 6px; padding: 14px 16px;
+  margin: 4px 0 6px; padding: 16px;
   border: 1px solid var(--line-strong); border-radius: 9px; background: var(--canvas);
 }
-.timing-edit .time-field { margin: 0 }        /* the form's own padding already spaces it */
-.timing-edit > label:first-child { margin-top: 0 }
-.timing-edit .dialog-footer { margin-top: 16px }
+.timing-edit-title { margin: 0 0 16px; font: 700 18px/1.2 Outfit, sans-serif }
+.edit-form, .review-form { display: grid; gap: 16px }
+.timing-edit .time-field { margin: 0 }
+/* 6px between a label and its box; 16px between rows. */
+.timing-edit label { margin: 0 0 6px }
+.edit-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px }
+.edit-fields .wide { grid-column: 1 / -1 }
+.timing-edit .helper-text, .timing-edit .form-error { margin: 0 }
+.timing-edit .dialog-footer { margin: 0; gap: 12px }
+
+/* "Take out of the race": apart from the form on purpose. 32px of clear space above it so
+   nobody hits DNS or DNF while aiming for Save, and a dashed red edge so it reads as a
+   different kind of action. --red on white is 6.54:1. */
+.take-out {
+  margin-top: 32px; padding: 16px;
+  border: 2px dashed var(--red); border-radius: 9px; background: #fff;
+  display: grid; gap: 12px;
+}
+.take-out h4 { margin: 0; color: var(--red); font: 700 16px/1.2 Outfit, sans-serif }
+.take-out-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.take-out-buttons .secondary-button { padding: 6px 10px; line-height: 1.25 }
+/* The closed outcome: greyed and dashed, still focusable (aria-disabled) so its reason is read. */
+.secondary-button.is-closed {
+  background: #eef0f4; border-style: dashed; border-color: var(--line-strong);
+  color: var(--muted); cursor: not-allowed;
+}
+
+/* The review card: what DNS or DNF does, an optional reason for a DNF, and a confirm button
+   that names the outcome. Red tint plus words; --red on --red-bg is 5.72:1. */
+.review-card {
+  padding: 16px; border: 2px solid var(--red); border-radius: 9px; background: var(--red-bg);
+  display: grid; gap: 12px;
+}
+.review-title { margin: 0; color: var(--red); font: 700 18px/1.2 Outfit, sans-serif }
+.review-card ul { margin: 0; padding-left: 20px }
 
 .danger-zone { margin: 32px 0 24px; padding: 20px 18px; border: 1px dashed var(--line-strong); border-radius: 9px }
 .danger-zone h2 { margin: 0 0 6px; font-family: Outfit, sans-serif; font-size: 20px }
@@ -474,6 +505,8 @@ a.quiet-button { display: inline-flex; align-items: center; justify-content: cen
   display: inline-block; padding: 3px 9px; border-radius: 999px;
   background: var(--navy-bg); color: var(--muted); font-size: 12px; font-weight: 700;
 }
+/* DNS / DNF: a red tint AND the words, never the tint alone. --red on --red-bg is 5.72:1. */
+.status-tag.out { background: var(--red-bg); color: var(--red); border: 1px solid var(--red) }
 
 /* Shown until the Sheet is connected — see API_URL at the top of core.js. A five-race
    series runs across months; local storage alone will not survive that. */
@@ -584,7 +617,10 @@ select:focus-visible,
   .wave-bar.pending { flex-wrap: wrap }
   /* Two boxes that hold at most three digits do not need half the shell — capped the same
      way the race picker caps its five options, so they read as fields, not as panels. */
-  .timing-edit .two-columns { grid-template-columns: repeat(2, minmax(0, 150px)) }
+  .timing-edit { padding: 20px }
+  .edit-fields { grid-template-columns: 150px 150px 260px }
+  .edit-fields .wide { grid-column: auto }
+  .take-out-buttons { grid-template-columns: repeat(2, minmax(0, 240px)) }
   .wave-body { padding: 6px 20px 16px }
   .wave-clock { font-size: 30px }
 
