@@ -1,38 +1,282 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-AU">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#182542" />
   <title>How-to guide — Balance Tri Club, Beat the clock</title>
+  <meta name="description" content="How to sign up for Balance Bolt, the Balance Tri Club prediction race, and how to run race day from the admin dashboard." />
+  <link rel="canonical" href="https://jthoyer.github.io/BalanceBolt/guide.html" />
+  <link rel="icon" type="image/png" href="assets/balance-logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
-  <style>
-    .guide { max-width: 720px; margin: 0 auto; padding-bottom: 64px }
-    .guide h2 { font: 700 28px/1.2 Outfit, sans-serif; margin: 48px 0 12px; padding-top: 24px; border-top: 1px solid var(--line) }
-    .guide h3 { font: 700 21px/1.25 Outfit, sans-serif; margin: 32px 0 8px }
-    .guide h4 { font: 700 17px/1.3 "DM Sans", sans-serif; margin: 24px 0 6px }
-    .guide p, .guide li { line-height: 1.6 }
-    .guide ul, .guide ol { padding-left: 22px }
-    .guide li { margin: 4px 0 }
-    .guide code { background: var(--navy-bg); padding: 1px 6px; border-radius: 5px; font-size: .92em; overflow-wrap: anywhere }
-    .guide a { color: var(--focus) }
-    .guide blockquote { margin: 16px 0; padding: 12px 16px; background: var(--navy-bg); border-left: 4px solid var(--ink); border-radius: 0 9px 9px 0 }
-    .guide blockquote p { margin: 0 }
-    .guide figure { margin: 20px 0; display: flex; flex-direction: column; align-items: flex-start }
-    .guide figure img { width: min(100%, 300px); height: auto; border: 1px solid var(--line-strong); border-radius: 14px; background: #fff }
-    .guide figcaption { margin-top: 6px; font-size: 14px; color: var(--muted) }
-    .guide .board-wrap { margin: 16px 0 }
-    .guide .board td code { white-space: normal; word-break: break-all }
-    .guide .board td { vertical-align: top }
-    .guide hr { display: none }
-    .guide li.check { list-style: none; margin-left: -22px; display: flex; gap: 10px; align-items: flex-start }
-    .guide li.check .box { flex: none; width: 20px; height: 20px; margin-top: 3px; border: 2px solid var(--line-strong); border-radius: 5px; background: #fff }
-    .guide-hero { margin: 16px 0 8px }
-    @media (min-width: 820px) { .guide figure img { width: 320px } }
-  </style>
+    <style>
+      :root {
+        --line-strong: #78849c;
+        --focus: #285ba8;
+      }
+      .skip-link {
+        position: absolute;
+        left: 12px;
+        top: -48px;
+        z-index: 10;
+        padding: 10px 14px;
+        background: var(--ink);
+        color: #fff;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .skip-link:focus {
+        top: 12px;
+      }
+      .guide {
+        max-width: 720px;
+        margin: 0 auto;
+        padding-bottom: 64px;
+      }
+      .guide h2 {
+        font:
+          700 28px/1.2 Outfit,
+          sans-serif;
+        margin: 56px 0 16px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .guide h3 {
+        font:
+          700 21px/1.25 Outfit,
+          sans-serif;
+        margin: 56px 0 12px;
+      }
+      .guide h4 {
+        font:
+          700 17px/1.3 'DM Sans',
+          sans-serif;
+        margin: 48px 0 10px;
+      }
+      .guide p,
+      .guide li {
+        line-height: 1.7;
+      }
+      .guide p {
+        margin: 0 0 2.5em;
+      }
+      .guide ul,
+      .guide ol {
+        margin: 0 0 2.5em;
+        padding-left: 22px;
+      }
+      .guide li {
+        margin: 8px 0;
+      }
+      .guide code {
+        background: var(--navy-bg);
+        padding: 1px 6px;
+        border-radius: 5px;
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
+      }
+      .guide a {
+        color: var(--focus);
+      }
+      .guide blockquote {
+        margin: 32px 0;
+        padding: 12px 16px;
+        background: var(--navy-bg);
+        border-left: 4px solid var(--ink);
+        border-radius: 0 9px 9px 0;
+      }
+      .guide blockquote p {
+        margin: 0;
+      }
+      .guide figure {
+        margin: 32px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .guide figure img {
+        width: min(100%, 300px);
+        height: auto;
+        border: 1px solid var(--line-strong);
+        border-radius: 14px;
+        background: #fff;
+      }
+      .guide figcaption {
+        margin-top: 6px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .guide .board-wrap {
+        margin: 32px 0;
+        overflow-x: auto;
+      }
+      .guide .board {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .guide .board th {
+        text-align: left;
+        background: var(--navy-bg);
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .guide .board th,
+      .guide .board td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        line-height: 1.5;
+      }
+      .guide .board tr:last-child td {
+        border-bottom: 0;
+      }
+      .guide .board td code {
+        white-space: normal;
+        word-break: break-all;
+      }
+      .guide hr {
+        display: none;
+      }
+      .guide li.check {
+        list-style: none;
+        margin-left: -22px;
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .guide li.check .box {
+        flex: none;
+        width: 20px;
+        height: 20px;
+        margin-top: 3px;
+        border: 2px solid var(--line-strong);
+        border-radius: 5px;
+        background: #fff;
+      }
+      .guide-hero {
+        margin: 16px 0 8px;
+        display: block;
+        grid-template-columns: 1fr;
+      }
+      .guide-hero .hero-copy {
+        display: block;
+        max-width: none;
+        width: 100%;
+      }
+      .guide-hero h1 {
+        max-width: none;
+      }
+      .guide-hero p {
+        max-width: 560px;
+      }
+      @media (min-width: 820px) {
+        .guide figure img {
+          width: 320px;
+        }
+      }
+      @media (max-width: 699px) {
+        .guide p,
+        .guide ul,
+        .guide ol {
+          margin-bottom: 1.75em;
+        }
+        .guide h3 {
+          margin-top: 44px;
+        }
+        .guide h4 {
+          margin-top: 36px;
+        }
+        .guide blockquote,
+        .guide figure,
+        .guide .board-wrap {
+          margin: 24px 0;
+        }
+      }
+      /* Side navigation: desktop only. Below 1000px the page is a single column. */
+      .guide-nav {
+        display: none;
+      }
+      @media (min-width: 1000px) {
+        .guide-layout {
+          display: grid;
+          grid-template-columns: 230px minmax(0, 1fr);
+          gap: 48px;
+          align-items: start;
+        }
+        .guide-layout .guide {
+          margin: 0;
+          width: 100%;
+        }
+        .guide-nav {
+          display: block;
+          position: sticky;
+          top: 24px;
+          max-height: calc(100vh - 48px);
+          overflow-y: auto;
+          padding: 8px 0 24px;
+          font-size: 15px;
+        }
+        .guide-nav ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+        }
+        .guide-nav ul ul {
+          margin: 2px 0 14px;
+        }
+        .guide-nav a {
+          display: block;
+          padding: 6px 12px;
+          border-left: 3px solid transparent;
+          border-radius: 0 8px 8px 0;
+          color: var(--muted);
+          text-decoration: none;
+          line-height: 1.35;
+        }
+        .guide-nav a.group {
+          font:
+            700 16px/1.3 Outfit,
+            sans-serif;
+          color: var(--ink);
+        }
+        .guide-nav ul ul a {
+          padding-left: 24px;
+        }
+        .guide-nav a:hover {
+          background: var(--navy-bg);
+          color: var(--ink);
+        }
+        .guide-nav a:focus-visible {
+          outline: 2px solid var(--focus);
+          outline-offset: 1px;
+        }
+        .guide-nav a[aria-current='true'] {
+          border-left-color: var(--ink);
+          background: var(--navy-bg);
+          color: var(--ink);
+          font-weight: 600;
+        }
+        html {
+          scroll-padding-top: 24px;
+          scroll-behavior: smooth;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to the guide</a>
@@ -42,10 +286,42 @@
         <img class="brand-logo" src="assets/balance-logo.png" alt="Balance Tri Club" />
       </div>
       <div class="header-actions">
+        <a class="text-button" href="https://jthoyer.github.io/BalanceTRI-app/">Calendar</a>
         <a class="text-button" href="index.html">Sign-up</a>
         <a class="text-button" href="admin.html">Admin</a>
       </div>
     </header>
+
+
+    <div class="guide-layout">
+      <nav class="guide-nav" aria-label="Guide sections">
+        <ul>
+          <li>
+            <a class="group" href="#part-1-sign-up">Part 1: Sign-up</a>
+            <ul>
+              <li><a href="#1-open-the-sign-up-page">1. Open the sign-up page</a></li>
+              <li><a href="#2-type-your-name">2. Type your name</a></li>
+              <li><a href="#3-call-your-time">3. Call your time</a></li>
+              <li><a href="#4-tap-add-me-to-the-race">4. Tap "Add me to the race"</a></li>
+              <li><a href="#5-check-the-start-list">5. Check the start list</a></li>
+              <li><a href="#how-waves-work">How waves work</a></li>
+              <li><a href="#if-something-goes-wrong">If something goes wrong</a></li>
+            </ul>
+          </li>
+          <li>
+            <a class="group" href="#part-2-admin-dashboard">Part 2: Admin dashboard</a>
+            <ul>
+              <li><a href="#the-admin-page">The admin page</a></li>
+              <li><a href="#before-race-day">Before race day</a></li>
+              <li><a href="#race-control">Race control</a></li>
+              <li><a href="#results">Results</a></li>
+              <li><a href="#series">Series</a></li>
+              <li><a href="#timing-tips">Timing tips</a></li>
+              <li><a href="#quick-checklist-for-race-day">Quick checklist for race day</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
 
     <main id="main" class="guide">
       <div class="hero guide-hero">
@@ -61,7 +337,7 @@
 <li><strong><a href="#part-1-sign-up">Part 1: Sign-up</a></strong> is for racers and whoever holds the sign-up phone.</li>
 <li><strong><a href="#part-2-admin-dashboard">Part 2: Admin dashboard</a></strong> is for whoever runs the day.</li>
 </ul>
-<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<div class="board-wrap" role="region" aria-label="Pages" tabindex="0"><table class="board">
 <thead>
 <tr>
 <th>Page</th>
@@ -88,12 +364,11 @@
 </tbody>
 </table></div>
 <p>The screenshots show a practice race with made-up names.</p>
-<hr />
 <h2 id="part-1-sign-up">Part 1: Sign-up</h2>
 <p>You need about 30 seconds and a time in your head.</p>
 <h3 id="1-open-the-sign-up-page">1. Open the sign-up page</h3>
 <p>Open the sign-up address on any phone. The page shows which race you are entering ("Race 1 of 5") and how many people are already on the start list.</p>
-<figure><img src="docs/screenshots/signup-1-home.png" alt="The sign-up page" loading="lazy" width="390" height="844"><figcaption>The sign-up page</figcaption></figure>
+<figure><img src="docs/screenshots/signup-1-home.png" alt="The sign-up page" width="780" height="1688" loading="lazy"><figcaption>The sign-up page</figcaption></figure>
 <blockquote>
 <p><strong>Which race am I entering?</strong> The page shows whichever race the organiser has set. You cannot switch races from here. If it shows the wrong race, tell the organiser.</p>
 </blockquote>
@@ -107,7 +382,7 @@
 <li>Minutes can go up to 599. Seconds can go up to 59.</li>
 </ul>
 <p>Whatever you write is the time you chase. Pick it carefully.</p>
-<figure><img src="docs/screenshots/signup-2-filled.png" alt="A filled-in sign-up form" loading="lazy" width="390" height="844"><figcaption>A filled-in sign-up form</figcaption></figure>
+<figure><img src="docs/screenshots/signup-2-filled.png" alt="A filled-in sign-up form" width="780" height="1688" loading="lazy"><figcaption>A filled-in sign-up form</figcaption></figure>
 <h3 id="4-tap-add-me-to-the-race">4. Tap "Add me to the race"</h3>
 <p>A green card confirms you are in. It gives you three things:</p>
 <ul>
@@ -115,11 +390,11 @@
 <li>your <strong>wave</strong></li>
 <li>the time you called</li>
 </ul>
-<figure><img src="docs/screenshots/signup-3-confirm.png" alt="The &quot;You're in&quot; confirmation card" loading="lazy" width="390" height="844"><figcaption>The &quot;You're in&quot; confirmation card</figcaption></figure>
+<figure><img src="docs/screenshots/signup-3-confirm.png" alt="The &quot;You're in&quot; confirmation card" width="780" height="1688" loading="lazy"><figcaption>The &quot;You're in&quot; confirmation card</figcaption></figure>
 <p>Note the words <strong>"for now"</strong>. Waves regroup as people sign up. They lock when the first wave starts. If you sign up after that, you join the next wave still waiting on the line.</p>
 <h3 id="5-check-the-start-list">5. Check the start list</h3>
 <p>Scroll down to see every wave and who is in it. Each wave shows the range of calls it covers, so you can see why you landed where you did.</p>
-<figure><img src="docs/screenshots/signup-5-startlist.png" alt="The start list, grouped into waves" loading="lazy" width="390" height="844"><figcaption>The start list, grouped into waves</figcaption></figure>
+<figure><img src="docs/screenshots/signup-5-startlist.png" alt="The start list, grouped into waves" width="780" height="1688" loading="lazy"><figcaption>The start list, grouped into waves</figcaption></figure>
 <h3 id="how-waves-work">How waves work</h3>
 <ul>
 <li>People whose calls sit within <strong>five minutes</strong> of each other share a wave.</li>
@@ -129,8 +404,8 @@
 </ul>
 <h3 id="if-something-goes-wrong">If something goes wrong</h3>
 <p>The form tells you what to fix. These are the messages you may see.</p>
-<figure><img src="docs/screenshots/signup-4-error.png" alt="A sign-up error" loading="lazy" width="390" height="844"><figcaption>A sign-up error</figcaption></figure>
-<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<figure><img src="docs/screenshots/signup-4-error.png" alt="A sign-up error" width="780" height="1688" loading="lazy"><figcaption>A sign-up error</figcaption></figure>
+<div class="board-wrap" role="region" aria-label="Messages" tabindex="0"><table class="board">
 <thead>
 <tr>
 <th>You see</th>
@@ -172,13 +447,12 @@
 </tbody>
 </table></div>
 <p>Typed the wrong time? Tell the organiser. They can fix it from race control (see <a href="#edit-a-racer">Edit a racer</a>).</p>
-<hr />
 <h2 id="part-2-admin-dashboard">Part 2: Admin dashboard</h2>
 <p>You run the day. You have three jobs: set up, start the waves and stop the clocks, then hand out prizes.</p>
 <h3 id="the-admin-page">The admin page</h3>
 <p>Open <code>admin.html</code>. It has one job: send you to the right page. It has two buttons.</p>
-<figure><img src="docs/screenshots/admin-1-splash.png" alt="The admin page" loading="lazy" width="390" height="844"><figcaption>The admin page</figcaption></figure>
-<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<figure><img src="docs/screenshots/admin-1-splash.png" alt="The admin page" width="780" height="1688" loading="lazy"><figcaption>The admin page</figcaption></figure>
+<div class="board-wrap" role="region" aria-label="Admin buttons" tabindex="0"><table class="board">
 <thead>
 <tr>
 <th>Button</th>
@@ -208,7 +482,7 @@
 </ol>
 <h3 id="race-control">Race control</h3>
 <p>Open race control from the admin page. The bottom bar has three tabs: <strong>Timing</strong>, <strong>Results</strong> and <strong>Series</strong>.</p>
-<figure><img src="docs/screenshots/admin-2-timing-before.png" alt="Race control before the first gun" loading="lazy" width="390" height="844"><figcaption>Race control before the first gun</figcaption></figure>
+<figure><img src="docs/screenshots/admin-2-timing-before.png" alt="Race control before the first gun" width="780" height="1688" loading="lazy"><figcaption>Race control before the first gun</figcaption></figure>
 <p>The dark panel at the top is the <strong>race clock</strong>. It starts at the first gun. It stays stuck to the top of the screen as you scroll.</p>
 <h4 id="start-the-waves">Start the waves</h4>
 <p>Scroll to <strong>Waves</strong>. Each wave has its own card, its own clock and its own start button.</p>
@@ -218,20 +492,20 @@
 <li>When a target reaches zero, it says <strong>Start now</strong>. The app never starts a wave for you. Tap <strong>Start wave N</strong> yourself.</li>
 <li>Need to go early or late? Tap <strong>−30s</strong> or <strong>+30s</strong>. The nudge moves that one wave only. It goes to the sheet, so every phone counts down to the same time. If two phones nudge at once, the last one to reach the sheet wins.</li>
 </ol>
-<figure><img src="docs/screenshots/admin-4-running.png" alt="Wave 1 running, wave 2 counting down" loading="lazy" width="390" height="844"><figcaption>Wave 1 running, wave 2 counting down</figcaption></figure>
+<figure><img src="docs/screenshots/admin-4-running.png" alt="Wave 1 running, wave 2 counting down" width="780" height="1688" loading="lazy"><figcaption>Wave 1 running, wave 2 counting down</figcaption></figure>
 <h4 id="stop-each-racers-clock">Stop each racer's clock</h4>
 <p>Stop each racer as they cross the line. Two ways:</p>
 <ul>
 <li><strong>Tap Finish</strong> on their row.</li>
 <li><strong>Finish by name.</strong> Type their name in the box at the top and tap <strong>Stop their clock</strong>. This is the quickest option in a crowd.</li>
 </ul>
-<figure><img src="docs/screenshots/admin-5-finish-by-name.png" alt="Finish by name" loading="lazy" width="390" height="844"><figcaption>Finish by name</figcaption></figure>
+<figure><img src="docs/screenshots/admin-5-finish-by-name.png" alt="Finish by name" width="780" height="1688" loading="lazy"><figcaption>Finish by name</figcaption></figure>
 <p>A finished row shows the racer's time, how far over or under their call they were, and an <strong>Undo</strong> button. Undo puts them back out on the course.</p>
 <p>When the last racer is home, the race clock and every wave clock stop together. Undo a finish and they all start again.</p>
-<figure><img src="docs/screenshots/admin-7-done.png" alt="All racers home" loading="lazy" width="390" height="844"><figcaption>All racers home</figcaption></figure>
+<figure><img src="docs/screenshots/admin-7-done.png" alt="All racers home" width="780" height="1688" loading="lazy"><figcaption>All racers home</figcaption></figure>
 <h4 id="edit-a-racer">Edit a racer</h4>
 <p>Tap <strong>Edit racer</strong> on any row. One panel opens.</p>
-<figure><img src="docs/screenshots/admin-6-edit-racer.png" alt="The Edit racer panel" loading="lazy" width="390" height="844"><figcaption>The Edit racer panel</figcaption></figure>
+<figure><img src="docs/screenshots/admin-6-edit-racer.png" alt="The Edit racer panel" width="780" height="1688" loading="lazy"><figcaption>The Edit racer panel</figcaption></figure>
 <ul>
 <li><strong>Fix a mistyped call.</strong> Change Minutes and Seconds.</li>
 <li><strong>Move them to another wave.</strong> Pick wave 1 to 6, or leave <strong>Auto</strong> and let the app group them.</li>
@@ -257,9 +531,9 @@
 <p>Both touch the current race only. The other four races stay as they are.</p>
 <h3 id="results">Results</h3>
 <p>Tap <strong>Results</strong>. The leaderboard updates as racers finish. It ranks everyone by the gap between their actual time and their call.</p>
-<figure><img src="docs/screenshots/admin-8-results.png" alt="The leaderboard and medals" loading="lazy" width="390" height="844"><figcaption>The leaderboard and medals</figcaption></figure>
+<figure><img src="docs/screenshots/admin-8-results.png" alt="The leaderboard and medals" width="780" height="1688" loading="lazy"><figcaption>The leaderboard and medals</figcaption></figure>
 <p>The top three get automatic medal cards:</p>
-<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<div class="board-wrap" role="region" aria-label="Prizes" tabindex="0"><table class="board">
 <thead>
 <tr>
 <th>Prize</th>
@@ -286,18 +560,18 @@
 </tbody>
 </table></div>
 <p>Scroll down for the full table.</p>
-<figure><img src="docs/screenshots/admin-8b-table.png" alt="The full results table" loading="lazy" width="390" height="844"><figcaption>The full results table</figcaption></figure>
+<figure><img src="docs/screenshots/admin-8b-table.png" alt="The full results table" width="780" height="1688" loading="lazy"><figcaption>The full results table</figcaption></figure>
 <p><strong>Hand out your own prizes.</strong> Best hat. Best excuse. Whatever the day throws up.</p>
 <ol>
 <li>Under <strong>Make one up</strong>, type the prize name.</li>
 <li>Pick the racer in <strong>Give it to</strong>.</li>
 <li>Tap <strong>Award it</strong>.</li>
 </ol>
-<figure><img src="docs/screenshots/admin-9-adhoc-prize.png" alt="Awarding an adhoc prize" loading="lazy" width="390" height="844"><figcaption>Awarding an adhoc prize</figcaption></figure>
+<figure><img src="docs/screenshots/admin-9-adhoc-prize.png" alt="Awarding an adhoc prize" width="780" height="1688" loading="lazy"><figcaption>Awarding an adhoc prize</figcaption></figure>
 <p>Per-race prizes do not depend on the series. Someone who turns up once can win every prize on the day.</p>
 <h3 id="series">Series</h3>
 <p>Tap <strong>Series</strong> to see standings across all five races.</p>
-<figure><img src="docs/screenshots/admin-10-series.png" alt="Series standings" loading="lazy" width="390" height="844"><figcaption>Series standings</figcaption></figure>
+<figure><img src="docs/screenshots/admin-10-series.png" alt="Series standings" width="780" height="1688" loading="lazy"><figcaption>Series standings</figcaption></figure>
 <p>The scoring is printed on the page, so nobody has to guess:</p>
 <ol>
 <li><strong>Best four of five.</strong> Your four best races count. Race all five and your worst one drops. It still shows in the table, struck through.</li>
@@ -306,7 +580,7 @@
 </ol>
 <p>A minute under your call costs the same as a minute over.</p>
 <p>Two series prizes:</p>
-<div class="board-wrap" role="region" aria-label="Table" tabindex="0"><table class="board">
+<div class="board-wrap" role="region" aria-label="Series prizes" tabindex="0"><table class="board">
 <thead>
 <tr>
 <th>Prize</th>
@@ -333,15 +607,38 @@
 </ul>
 <h3 id="quick-checklist-for-race-day">Quick checklist for race day</h3>
 <ul>
-<li class="check"><span class="box" aria-hidden="true"></span>Sheet connected. Pill says <strong>Synced</strong>.</li>
-<li class="check"><span class="box" aria-hidden="true"></span>Race number set on race control.</li>
-<li class="check"><span class="box" aria-hidden="true"></span>Sign-up phone open on the sign-up page.</li>
-<li class="check"><span class="box" aria-hidden="true"></span>One phone chosen for timing.</li>
-<li class="check"><span class="box" aria-hidden="true"></span>Wave 1 started at the gun. Other waves started at <strong>Start now</strong>.</li>
-<li class="check"><span class="box" aria-hidden="true"></span>Every racer finished, or marked DNS or DNF.</li>
-<li class="check"><span class="box" aria-hidden="true"></span>Results checked. Adhoc prizes awarded.</li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>Sheet connected. Pill says <strong>Synced</strong>.</span></li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>Race number set on race control.</span></li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>Sign-up phone open on the sign-up page.</span></li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>One phone chosen for timing.</span></li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>Wave 1 started at the gun. Other waves started at <strong>Start now</strong>.</span></li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>Every racer finished, or marked DNS or DNF.</span></li>
+<li class="check"><span class="box" aria-hidden="true"></span><span>Results checked. Adhoc prizes awarded.</span></li>
 </ul>
     </main>
+    </div>
   </div>
+  <script>
+    // Highlight the nav link for the section being read.
+    (function () {
+      var links = document.querySelectorAll('.guide-nav a');
+      var byId = {};
+      links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+      var heads = Array.prototype.filter.call(
+        document.querySelectorAll('.guide h2[id], .guide h3[id]'),
+        function (h) { return byId[h.id]; }
+      );
+      function update() {
+        var current = null;
+        heads.forEach(function (h) { if (h.getBoundingClientRect().top <= 120) current = h; });
+        links.forEach(function (a) {
+          if (current && a === byId[current.id]) a.setAttribute('aria-current', 'true');
+          else a.removeAttribute('aria-current');
+        });
+      }
+      window.addEventListener('scroll', update, { passive: true });
+      update();
+    })();
+  </script>
 </body>
 </html>
